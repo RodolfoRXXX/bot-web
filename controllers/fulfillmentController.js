@@ -9,8 +9,8 @@ function fulfillmentHandler(req, res) {
         let { tipocomida, zona } = agent.parameters;
         const outputContexts = agent.contexts;
 
-        tipocomida = tipocomida?.[0] || tipocomida;
-        zona = zona?.[0] || zona;
+        tipocomida = Array.isArray(tipocomida) ? tipocomida[0] : tipocomida;
+        zona = Array.isArray(zona) ? zona[0] : zona;
 
         if (!tipocomida) {
             const ctx = outputContexts.find(c => c.name.includes("esperando_zona"));
@@ -18,7 +18,7 @@ function fulfillmentHandler(req, res) {
         }
 
         if (!zona) {
-            const ctx = outputContexts.find(c => c.nameincludes("esperando_comida"));
+            const ctx = outputContexts.find(c => c.name.includes("esperando_comida"));
             zona = ctx?.parameters?.zona;
         }
 

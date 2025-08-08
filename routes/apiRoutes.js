@@ -1,7 +1,7 @@
 
 const express = require("express");
 const path = require("path");
-const { sessionClient, sessionPath } = require("../utils/dialogflowClient");
+const { sessionClient, sessionPath } = require("../utils/dialogFlowClient");
 const { fulfillmentHandler } = require("../controllers/fulfillmentController");
 
 const router = express.Router();

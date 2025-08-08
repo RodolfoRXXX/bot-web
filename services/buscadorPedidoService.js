@@ -1,11 +1,10 @@
 
-const restaurantes = require("../restaurantes.json");
+const pedidos = require("../pedidos.json");
 
-function recomendarRestaurantes(tipoComida, zona) {
-    const tipo = Array.isArray(tipoComida) ? tipoComida[0] : tipoComida;
-    const lugar = Array.isArray(zona) ? zona[0] : zona;
+function buscarPedido(codigo_seguimiento) {
+    const codigo = Array.isArray(codigo_seguimiento) ? codigo_seguimiento[0] : codigo_seguimiento;
 
-    if (!tipo || !lugar) return null;
+    if (!codigo) return null;
 
     const comida = tipo.toLowerCase();
     const area = lugar.toLowerCase();

@@ -1,0 +1,12 @@
+[
+  {
+    "codigo": "ABC123",
+    "estado": "En tránsito",
+    "cliente": "Juan Pérez"
+  },
+  {
+    "codigo": "XYZ789",
+    "estado": "Entregado",
+    "cliente": "María García"
+  }
+]

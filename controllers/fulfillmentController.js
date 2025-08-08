@@ -7,21 +7,47 @@ function fulfillmentHandler(req, res) {
 
     function handlerRecomendacion(agent) {
         let { tipocomida, zona } = agent.parameters;
+
+        // Obtener parámetros de contextos previos si faltan
         const outputContexts = agent.contexts;
 
-        tipocomida = Array.isArray(tipocomida) ? tipocomida[0] : tipocomida;
-        zona = Array.isArray(zona) ? zona[0] : zona;
-
         if (!tipocomida) {
-            const ctx = outputContexts.find(c => c.name.includes("esperando_zona"));
+            const ctx = outputContexts.find(c => c.name.includes("esperando_comida"));
             tipocomida = ctx?.parameters?.tipocomida;
         }
 
         if (!zona) {
-            const ctx = outputContexts.find(c => c.name.includes("esperando_comida"));
+            const ctx = outputContexts.find(c => c.name.includes("esperando_zona"));
             zona = ctx?.parameters?.zona;
         }
 
+        // Si aún falta algún dato, guardar contexto y pedirlo
+        if (!tipocomida && zona) {
+            agent.setContext({
+                name: "esperando_comida",
+                lifespan: 5,
+                parameters: { zona }
+            });
+            agent.add("¿Qué tipo de comida te gustaría?");
+            return;
+        }
+
+        if (!zona && tipocomida) {
+            agent.setContext({
+                name: "esperando_zona",
+                lifespan: 5,
+                parameters: { tipocomida }
+            });
+            agent.add("¿En qué zona estás buscando?");
+            return;
+        }
+
+        if (!tipocomida && !zona) {
+            agent.add("¿Qué tipo de comida y en qué zona estás buscando?");
+            return;
+        }
+
+        // Ambos parámetros presentes → recomendar
         const respuesta = recomendarRestaurantes(tipocomida, zona);
         agent.add(respuesta);
     }
@@ -32,3 +58,4 @@ function fulfillmentHandler(req, res) {
 }
 
 module.exports = { fulfillmentHandler };
+

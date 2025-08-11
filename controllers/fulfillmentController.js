@@ -1,61 +1,35 @@
 
 const { WebhookClient } = require("dialogflow-fulfillment");
-const { recomendarRestaurantes } = require("../services/recomendadorService");
+const { ConsultarEstadoPedido } = require("../services/consultarEstadoPedido");
 
 function fulfillmentHandler(req, res) {
     const agent = new WebhookClient({ request: req, response: res });
 
-    function handlerRecomendacion(agent) {
-        let { tipocomida, zona } = agent.parameters;
+    // --- INTENCIÓN: CONSULTAR ESTADO DE PEDIDO ---
+    function handlerConsultarEstadoPedido(agent) {
+        const { codigo_seguimiento } = agent.parameters;
 
-        // Obtener parámetros de contextos previos si faltan
-        const outputContexts = agent.contexts;
-
-        if (!tipocomida) {
-            const ctx = outputContexts.find(c => c.name.includes("esperando_comida"));
-            tipocomida = ctx?.parameters?.tipocomida;
-        }
-
-        if (!zona) {
-            const ctx = outputContexts.find(c => c.name.includes("esperando_zona"));
-            zona = ctx?.parameters?.zona;
-        }
-
-        // Si aún falta algún dato, guardar contexto y pedirlo
-        if (!tipocomida && zona) {
-            agent.setContext({
-                name: "esperando_comida",
-                lifespan: 5,
-                parameters: { zona }
-            });
-            agent.add("¿Qué tipo de comida te gustaría?");
+        // 1. Verificar que el usuario dio un código
+        if (!codigo_seguimiento || codigo_seguimiento.trim() === "") {
+            agent.add("Por favor, indícame tu código de seguimiento para poder buscar tu pedido.");
             return;
         }
 
-        if (!zona && tipocomida) {
-            agent.setContext({
-                name: "esperando_zona",
-                lifespan: 5,
-                parameters: { tipocomida }
-            });
-            agent.add("¿En qué zona estás buscando?");
-            return;
-        }
+        // 2. Llamar a la función de servicio y obtener resultado
+        const resultado = ConsultarEstadoPedido(codigo_seguimiento);
 
-        if (!tipocomida && !zona) {
-            agent.add("¿Qué tipo de comida y en qué zona estás buscando?");
-            return;
-        }
-
-        // Ambos parámetros presentes → recomendar
-        const respuesta = recomendarRestaurantes(tipocomida, zona);
-        agent.add(respuesta);
+        // 3. Responder al usuario
+        agent.add(resultado.mensaje);
     }
 
+    // Mapeo de intenciones
     const intentMap = new Map();
-    intentMap.set("RecomendarRestaurante", handlerRecomendacion);
+    intentMap.set("ConsultarEstadoPedido", handlerConsultarEstadoPedido);
+
+    // Handler de intenciones desconocidas para evitar errores
     agent.handleRequest(intentMap);
 }
 
 module.exports = { fulfillmentHandler };
+
 

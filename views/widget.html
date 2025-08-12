@@ -18,6 +18,22 @@
             flex-direction: column;
             height: 100vh;
         }
+        /* Encabezado del chat */
+        #chatHeader {
+            display: flex;
+            align-items: center;
+            background: #075e54;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        #chatHeader img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
         #chat {
             flex: 1;
             overflow-y: auto;
@@ -68,8 +84,9 @@
         .time {
             font-size: 10px;
             color: #666;
-            margin-left: 5px;
-            align-self: flex-end;
+            position: absolute;
+            bottom: 2px;
+            right: 6px;
         }
         #inputArea {
             display: flex;
@@ -93,9 +110,37 @@
             color: white;
             cursor: pointer;
         }
+        /* Animación puntos "escribiendo..." */
+        .typing-dots {
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .typing-dots span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin: 0 2px;
+            background-color: #555;
+            border-radius: 50%;
+            animation: blink 1.4s infinite both;
+        }
+        .typing-dots span:nth-child(1) { animation-delay: 0s; }
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes blink {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
+    <!-- Encabezado del chat -->
+    <div id="chatHeader">
+        <img src="https://static.vecteezy.com/system/resources/previews/009/971/217/non_2x/chat-bot-icon-isolated-contour-symbol-illustration-vector.jpg" alt="Bot">
+        Mi Bot Asistente
+    </div>
+
     <div id="chat"></div>
     <div id="inputArea">
         <input type="text" id="userInput" placeholder="Escribí tu mensaje..."/>
@@ -108,18 +153,22 @@
             return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        function addMessage(sender, text) {
+        function addMessage(sender, text, isTemporary = false) {
             const chat = document.getElementById("chat");
             const time = getTime();
+            const id = "msg-" + Date.now();
 
             chat.innerHTML += `
-                <div class="message ${sender}">
+                <div class="message ${sender}" id="${id}">
                     <div class="profile-pic"></div>
-                    <div class="bubble">${text}</div>
-                    <div class="time">${time}</div>
+                    <div class="bubble">
+                        ${text}
+                        <div class="time">${time}</div>
+                    </div>
                 </div>
             `;
             chat.scrollTop = chat.scrollHeight;
+            return isTemporary ? id : null;
         }
 
         async function sendMessage() {
@@ -130,6 +179,14 @@
             addMessage("user", message);
             input.value = "";
 
+            // Animación "Escribiendo..."
+            const typingId = addMessage("bot", `
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            `, true);
+
+            // Obtener respuesta del bot (sin mostrar aún)
             const res = await fetch("/api/chat", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -137,8 +194,31 @@
             });
 
             const data = await res.json();
-            addMessage("bot", data.reply);
+            const reply = data.reply;
+
+            // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
+            const words = reply.split(" ").length;
+            let delay = Math.min(Math.max(words * 120, 1000), 3500);
+
+            // Esperar antes de mostrar la respuesta
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Reemplazar burbuja
+            const typingBubble = document.getElementById(typingId);
+            if (typingBubble) {
+                typingBubble.querySelector(".bubble").textContent = reply;
+                typingBubble.querySelector(".time").textContent = getTime();
+            }
         }
+
+        // Enviar mensaje con Enter
+        document.getElementById("userInput").addEventListener("keydown", function(e) {
+            if (e.key === "Enter" && !e.shiftKey) { 
+                e.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
+
 </body>
 </html>

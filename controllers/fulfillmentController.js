@@ -1,9 +1,30 @@
 
 const { WebhookClient } = require("dialogflow-fulfillment");
+const db = require("../utils/firebase");  // conexión a Firestore
+
+// Services
 const { ConsultarEstadoPedido } = require("../services/consultarEstadoPedido");
 
-function fulfillmentHandler(req, res) {
+
+async function fulfillmentHandler(req, res) {
     const agent = new WebhookClient({ request: req, response: res });
+
+    // Obtener el siteId (de la request)
+    const siteId = req.body.originalDetectIntentRequest?.payload?.siteId || "bot123";
+
+    // Traer configuración del bot desde Firestore
+    let botConfig = null;
+    try {
+        const doc = await db.collection("bots").doc(siteId).get();
+        if (doc.exists) {
+            botConfig = doc.data();
+            console.log("Config del bot: ", botConfig);
+        } else {
+            console.warn("No existe bot con ID: ", siteId);
+        }
+    } catch (error) {
+        console.error("Error al obtener bot: ", error);
+    }
 
     // --- INTENCIÓN: CONSULTAR ESTADO DE PEDIDO ---
     function handlerConsultarEstadoPedido(agent) {

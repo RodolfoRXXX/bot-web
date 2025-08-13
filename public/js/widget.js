@@ -75,3 +75,23 @@ document.getElementById("userInput").addEventListener("keydown", function(e) {
         sendMessage();
     }
 });
+
+document.getElementById("clear-chat-btn").addEventListener("click", function () {
+    const chat = document.getElementById("chat");
+
+    // Limpia el chat
+    chat.innerHTML = "";
+
+    // Agrega mensaje temporal
+    const msg = document.createElement("div");
+    msg.classList.add("system-message");
+    msg.textContent = "💬 Chat reiniciado";
+    chat.appendChild(msg);
+
+    // Borra el mensaje después de 2 segundos
+    setTimeout(() => {
+        if (msg.parentNode) {
+            msg.remove();
+        }
+    }, 2000);
+});

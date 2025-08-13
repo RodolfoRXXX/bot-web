@@ -1,8 +1,9 @@
 
 
+
 (function() {
     const btn = document.createElement("div");
-    btn.innerHTML = "💬";
+    btn.innerHTML = "💬"; // Ícono inicial
     btn.style.position = "fixed";
     btn.style.bottom = "20px";
     btn.style.right = "20px";
@@ -18,6 +19,7 @@
     btn.style.cursor = "pointer";
     btn.style.boxShadow = "0 4px 8px rgba(0,0,0,0.3)";
     btn.style.zIndex = "9999";
+    btn.title = "Abrir chat";
     document.body.appendChild(btn);
 
     const iframe = document.createElement("iframe");
@@ -34,7 +36,13 @@
     iframe.style.zIndex = "9998";
     document.body.appendChild(iframe);
 
+    let chatAbierto = false; // Estado del chat
+
     btn.addEventListener("click", () => {
-        iframe.style.display = (iframe.style.display === "none") ? "block" : "none";
+        chatAbierto = !chatAbierto;
+        iframe.style.display = chatAbierto ? "block" : "none";
+        btn.innerHTML = chatAbierto ? "❌" : "💬"; // Cambia el ícono
+        btn.title = chatAbierto ? "Cerrar Chat" : "Abrir chat";
+        btn.style.background = chatAbierto ? "#ffdae0ff" : "#007bff"; // Color distinto si querés
     });
 })();

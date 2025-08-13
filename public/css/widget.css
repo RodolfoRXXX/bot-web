@@ -24,6 +24,29 @@ body {
     border-radius: 50%;
     margin-right: 10px;
 }
+
+#chat-header {
+    background: #007bff;
+    color: white;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#clear-chat-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#clear-chat-btn:hover {
+    color: #25d366;
+}
+
 #chat {
     flex: 1;
     overflow-y: auto;

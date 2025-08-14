@@ -1,8 +1,6 @@
 
 const { WebhookClient } = require("dialogflow-fulfillment");
 const db = require("../utils/firebase");  // conexión a Firestore
-
-// Services
 const { ConsultarEstadoPedido } = require("../services/consultarEstadoPedido");
 
 
@@ -10,7 +8,8 @@ async function fulfillmentHandler(req, res) {
     const agent = new WebhookClient({ request: req, response: res });
 
     // Obtener el siteId (de la request)
-    const siteId = req.body.originalDetectIntentRequest?.payload?.siteId || "bot123";
+    const siteId = req.body.originalDetectIntentRequest?.payload?.siteId ||
+                    req.body.siteId || "bot123";
 
     // Traer configuración del bot desde Firestore
     let botConfig = null;
@@ -26,7 +25,8 @@ async function fulfillmentHandler(req, res) {
         console.error("Error al obtener bot: ", error);
     }
 
-    // --- INTENCIÓN: CONSULTAR ESTADO DE PEDIDO ---
+    // --- INTENCIÓNES 
+    // CONSULTAR ESTADO DE PEDIDO
     function handlerConsultarEstadoPedido(agent) {
         const { codigo_seguimiento } = agent.parameters;
 
@@ -42,10 +42,22 @@ async function fulfillmentHandler(req, res) {
         // 3. Responder al usuario
         agent.add(resultado.mensaje);
     }
+    // SALUDO
+    function handlerSaludo(agent) {
+        const saludo = botConfig?.respuestas?.saludo || "Hola!";
+        agent.add(saludo);
+    }
+    // DESPEDIDA
+    function handlerDespedida(agent) {
+        const despedida = botConfig?.respuestas?.despedida || "Adios!";
+        agent.add(despedida);
+    }
 
     // Mapeo de intenciones
     const intentMap = new Map();
     intentMap.set("ConsultarEstadoPedido", handlerConsultarEstadoPedido);
+    intentMap.set("saludo", handlerSaludo);
+    intentMap.set("Despedida", handlerDespedida);
 
     // Handler de intenciones desconocidas para evitar errores
     agent.handleRequest(intentMap);

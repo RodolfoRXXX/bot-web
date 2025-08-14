@@ -1,9 +1,14 @@
 
+const urlParams = new URLSearchParams(window.location.search);
+const siteId = urlParams.get("siteId") || "defaultBot";
+console.log("Widget cargado para: ", siteId);
+
+// Obtener el tiempo
 function getTime() {
     const now = new Date();
     return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 }
-
+// Agregar mensaje a enviar
 function addMessage(sender, text, isTemporary = false) {
     const chat = document.getElementById("chat");
     const time = getTime();
@@ -21,7 +26,7 @@ function addMessage(sender, text, isTemporary = false) {
     chat.scrollTop = chat.scrollHeight;
     return isTemporary ? id : null;
 }
-
+// Enviar mensaje
 async function sendMessage() {
     const input = document.getElementById("userInput");
     const message = input.value.trim();
@@ -41,7 +46,10 @@ async function sendMessage() {
     const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message })
+        body: JSON.stringify({ 
+            message,
+            siteId
+         })
     });
 
     const data = await res.json();
@@ -67,15 +75,14 @@ async function sendMessage() {
         `;
     }
 }
-
-// Enviar mensaje con Enter
+// Evento para enviar mensaje con Enter
 document.getElementById("userInput").addEventListener("keydown", function(e) {
     if (e.key === "Enter" && !e.shiftKey) { 
         e.preventDefault();
         sendMessage();
     }
 });
-
+// Limpiar el chat
 document.getElementById("clear-chat-btn").addEventListener("click", function () {
     const chat = document.getElementById("chat");
 

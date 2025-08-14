@@ -1,7 +1,10 @@
 
-
-
 (function() {
+
+    // Detectar el script que cargó este archivo
+    const currentScript = document.currentScript;
+    const siteId = currentScript.getAttribute("data-siteid") || "defaultBot";
+
     const btn = document.createElement("div");
     btn.innerHTML = "💬"; // Ícono inicial
     btn.style.position = "fixed";
@@ -23,7 +26,8 @@
     document.body.appendChild(btn);
 
     const iframe = document.createElement("iframe");
-    iframe.src = "http://localhost:3000/widget"; // URL donde corre tu bot
+    // URL donde corre tu bot con parámetro en la URL
+    iframe.src = `http://localhost:3000/widget?siteId=${encodeURIComponent(siteId)}`;
     iframe.style.position = "fixed";
     iframe.style.bottom = "90px";
     iframe.style.right = "20px";

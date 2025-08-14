@@ -13,7 +13,9 @@ router.get("/widget", (req, res) => {
 
 // Ruta API chat
 router.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+  const { message, siteId } = req.body;
+
+  console.log(`Mensaje recibido desde el sitio: ${siteId}`);
 
   try {
     const request = {

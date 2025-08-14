@@ -1,4 +1,5 @@
 # Ignora las llaves de dialogFlow
 
+.env
 dialogflow-key.json
 firebase-key.json

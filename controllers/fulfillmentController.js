@@ -8,8 +8,11 @@ async function fulfillmentHandler(req, res) {
     const agent = new WebhookClient({ request: req, response: res });
 
     // Obtener el siteId (de la request)
-    const siteId = req.body.originalDetectIntentRequest?.payload?.siteId ||
-                    req.body.siteId || "bot123";
+    const siteId = req.body.siteId || 
+               req.body.originalDetectIntentRequest?.payload?.siteId || 
+               "bot123";
+
+    console.log("siteId es: ", siteId);
 
     // Traer configuración del bot desde Firestore
     let botConfig = null;

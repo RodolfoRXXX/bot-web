@@ -41,12 +41,19 @@
     document.body.appendChild(iframe);
 
     let chatAbierto = false; // Estado del chat
+    let primeraVez = true; // 👈 flag para saber si ya se inicializó
 
     btn.addEventListener("click", () => {
         chatAbierto = !chatAbierto;
         iframe.style.display = chatAbierto ? "block" : "none";
-        btn.innerHTML = chatAbierto ? "❌" : "💬"; // Cambia el ícono
+        btn.innerHTML = chatAbierto ? "❌" : "💬";
         btn.title = chatAbierto ? "Cerrar Chat" : "Abrir chat";
-        btn.style.background = chatAbierto ? "#ffdae0ff" : "#007bff"; // Color distinto si querés
+        btn.style.background = chatAbierto ? "#ffdae0ff" : "#007bff";
+
+        // 👉 Solo la primera vez que se abre, enviamos evento a iframe
+        if (chatAbierto && primeraVez) {
+            primeraVez = false;
+            iframe.contentWindow.postMessage({ action: "initChat", siteId }, "*");
+        }
     });
 })();

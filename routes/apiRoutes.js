@@ -13,6 +13,24 @@ router.get("/widget", (req, res) => {
   res.sendFile(path.join(__dirname, "../views/widget.html"));
 });
 
+// Ruta para obtener configuración del bot según siteId
+router.get("/api/config/:siteId", async (req, res) => {
+  const siteId = req.params.siteId;
+
+  try {
+    const doc = await db.collection("bots").doc(siteId).get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Bot no encontrado." });
+    }
+
+    res.json(doc.data()); // 🔹 Devuelve toda la config del bot
+  } catch (error) {
+    console.error("Error al obtener config del bot:", error);
+    res.status(500).json({ error: "Error al obtener configuración del bot." });
+  }
+});
+
 // Ruta API chat
 router.post("/api/chat", async (req, res) => {
   const { message, siteId = "bot123" } = req.body;

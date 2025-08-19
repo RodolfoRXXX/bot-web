@@ -3,6 +3,30 @@ const urlParams = new URLSearchParams(window.location.search);
 const siteId = urlParams.get("siteId") || "defaultBot";
 console.log("Widget cargado para: ", siteId);
 
+// Escuchar mensajes desde el iframe padre
+window.addEventListener("message", (event) => {
+    if (event.data.action === "initChat") {
+        console.log("Init recibido para siteId:", event.data.siteId);
+        initChat(event.data.siteId); // 👈 Llamamos a tu función
+    }
+});
+
+// Ejemplo de initChat()
+async function initChat(siteId) {
+    try {
+        const res = await fetch(`/api/config?siteId=${siteId}`);
+        const botConfig = await res.json();
+
+        // Configurar título del chat
+        document.getElementById("chat-title").textContent = botConfig.nombre;
+
+        // Agregar saludo inicial
+        addMessage("bot", botConfig.respuestas?.saludo || "¡Hola! Bienvenido al chat 👋");
+    } catch (err) {
+        console.error("Error cargando configuración:", err);
+    }
+}
+
 // Obtener el tiempo
 function getTime() {
     const now = new Date();
@@ -95,10 +119,13 @@ document.getElementById("clear-chat-btn").addEventListener("click", function () 
     msg.textContent = "💬 Chat reiniciado";
     chat.appendChild(msg);
 
-    // Borra el mensaje después de 2 segundos
+    // Borra el mensaje después de 2 segundos y reinicia el saludo
     setTimeout(() => {
         if (msg.parentNode) {
             msg.remove();
+        }
+        if (typeof initChat === "function" && typeof currentSiteId !== "undefined" && currentSiteId) {
+            initChat(currentSiteId); // 👈 reinicia el saludo
         }
     }, 2000);
 });

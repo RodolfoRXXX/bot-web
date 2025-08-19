@@ -1,7 +1,7 @@
 
 const { WebhookClient } = require("dialogflow-fulfillment");
 const db = require("../utils/firebase");  // conexión a Firestore
-const { ConsultarEstadoPedido } = require("../services/consultarEstadoPedido");
+const handler = require("./handlers");
 
 
 async function fulfillmentHandler(req, res) {
@@ -28,39 +28,13 @@ async function fulfillmentHandler(req, res) {
         console.error("Error al obtener bot: ", error);
     }
 
-    // --- INTENCIÓNES 
-    // CONSULTAR ESTADO DE PEDIDO
-    function handlerConsultarEstadoPedido(agent) {
-        const { codigo_seguimiento } = agent.parameters;
-
-        // 1. Verificar que el usuario dio un código
-        if (!codigo_seguimiento || codigo_seguimiento.trim() === "") {
-            agent.add("Por favor, indícame tu código de seguimiento para poder buscar tu pedido.");
-            return;
-        }
-
-        // 2. Llamar a la función de servicio y obtener resultado
-        const resultado = ConsultarEstadoPedido(codigo_seguimiento);
-
-        // 3. Responder al usuario
-        agent.add(resultado.mensaje);
-    }
-    // SALUDO
-    function handlerSaludo(agent) {
-        const saludo = botConfig?.respuestas?.saludo || "Hola!";
-        agent.add(saludo);
-    }
-    // DESPEDIDA
-    function handlerDespedida(agent) {
-        const despedida = botConfig?.respuestas?.despedida || "Adios!";
-        agent.add(despedida);
-    }
-
-    // Mapeo de intenciones
+    // Mapeo de intenciones con botConfig inyectado
     const intentMap = new Map();
-    intentMap.set("ConsultarEstadoPedido", handlerConsultarEstadoPedido);
-    intentMap.set("saludo", handlerSaludo);
-    intentMap.set("Despedida", handlerDespedida);
+    intentMap.set("saludo", (a) => handler.saludo(a, botConfig));
+    intentMap.set("Despedida", (a) => handler.despedida(a, botConfig));
+    intentMap.set("horario", (a) => handler.horario(a, botConfig));
+    intentMap.set("telefono", (a) => handler.telefono(a, botConfig));
+    intentMap.set("redes", (a) => handler.redes(a, botConfig));
 
     // Handler de intenciones desconocidas para evitar errores
     agent.handleRequest(intentMap);

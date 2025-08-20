@@ -41,7 +41,7 @@ router.post("/api/chat", async (req, res) => {
 
     if (!doc.exists) {
       console.log("El documento no existe en Firestore:", siteId);
-      return res.status(404).json({ reply: "Bot no encontrado." });
+      return res.status(404).json({ reply: "Estamos experimentando algunos problemas. Intente más tarde." });
     }
 
     const botConfig = doc.data();

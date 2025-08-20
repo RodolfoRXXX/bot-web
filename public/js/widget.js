@@ -20,7 +20,7 @@ async function initChat(siteId) {
         document.getElementById("chat-title").textContent = botConfig.config?.nombre || "Asistente Virtual";
 
         // Agregar saludo inicial
-        addMessage("bot", botConfig.respuestas?.saludo || "¡Hola! Bienvenido al chat 👋");
+        addMessage("bot", botConfig.respuestas?.saludoInicial || "Estamos experimentando algunos problemas. Intente más tarde.");
     } catch (err) {
         console.error("Error cargando configuración:", err);
     }
@@ -89,7 +89,6 @@ async function sendMessage() {
     const typingBubble = document.getElementById(typingId);
     if (typingBubble) {
         const bubble = typingBubble.querySelector(".bubble");
-        const timeDiv = bubble.querySelector(".time");
 
         // Cambiar solo el texto del mensaje
         bubble.innerHTML = `

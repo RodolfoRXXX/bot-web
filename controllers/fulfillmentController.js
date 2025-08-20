@@ -13,8 +13,6 @@ async function fulfillmentHandler(req, res) {
 
     console.log("siteId es: ", siteId);
 
-    // Traer configuración del bot desde Firestore
-    let botConfig = null;
     try {
         const doc = await db.collection("bots").doc(siteId).get();
         const botConfig = doc.data();

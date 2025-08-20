@@ -33,7 +33,7 @@ router.get("/api/config/:siteId", async (req, res) => {
 
 // Ruta API chat
 router.post("/api/chat", async (req, res) => {
-  const { message, siteId = "bot123" } = req.body;
+  const { message, siteId = "defaultBot" } = req.body;
 
   try {
     // 1. Traer config desde Firebase
@@ -79,7 +79,6 @@ router.post("/api/chat", async (req, res) => {
     let reply =
       result.fulfillmentText ||
       result.fulfillmentMessages?.[0]?.text?.text?.[0] ||
-      botConfig?.respuestas?.saludo ||
       "No entendí eso.";
 
     res.send({ reply });

@@ -1,7 +1,6 @@
 
 const { WebhookClient } = require("dialogflow-fulfillment");
 const db = require("../utils/firebase");  // conexión a Firestore
-const handler = require("./handlers");
 
 
 async function fulfillmentHandler(req, res) {
@@ -10,7 +9,7 @@ async function fulfillmentHandler(req, res) {
     // Obtener el siteId (de la request)
     const siteId = req.body.siteId || 
                req.body.originalDetectIntentRequest?.payload?.siteId || 
-               "bot123";
+               "defaultBot";
 
     console.log("siteId es: ", siteId);
 
@@ -18,28 +17,22 @@ async function fulfillmentHandler(req, res) {
     let botConfig = null;
     try {
         const doc = await db.collection("bots").doc(siteId).get();
-        if (doc.exists) {
-            botConfig = doc.data();
-            console.log("Config del bot: ", botConfig);
-        } else {
-            console.warn("No existe bot con ID: ", siteId);
+        const botConfig = doc.data();
+        if (!doc.exists) {
+            console.warn("No existe bot con ID:", siteId);
+            return res.status(404).send("Bot no encontrado");
         }
+
+        // 🔑 Carga dinámica del archivo de handlers según el tipo
+        const botType = botConfig.tipo || "default"; 
+        const getIntentMap = require(`./handlers/${botType}BotHandler.js`);
+
+        const intentMap = getIntentMap(botConfig);
+        agent.handleRequest(intentMap);
     } catch (error) {
-        console.error("Error al obtener bot: ", error);
+        console.error("Error al obtener el bot:", error);
+        res.status(500).send("Error interno del servidor");
     }
-
-    // Mapeo de intenciones con botConfig inyectado
-    const intentMap = new Map();
-    intentMap.set("saludo", (a) => handler.saludo(a, botConfig));
-    intentMap.set("Despedida", (a) => handler.despedida(a, botConfig));
-    intentMap.set("horario", (a) => handler.horario(a, botConfig));
-    intentMap.set("telefono", (a) => handler.telefono(a, botConfig));
-    intentMap.set("redes", (a) => handler.redes(a, botConfig));
-
-    // Handler de intenciones desconocidas para evitar errores
-    agent.handleRequest(intentMap);
 }
 
 module.exports = { fulfillmentHandler };
-
-

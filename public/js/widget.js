@@ -1,7 +1,6 @@
 
 const urlParams = new URLSearchParams(window.location.search);
 const siteId = urlParams.get("siteId") || "defaultBot";
-console.log("Widget cargado para: ", siteId);
 
 // Escuchar mensajes desde el iframe padre
 window.addEventListener("message", (event) => {
@@ -14,11 +13,11 @@ window.addEventListener("message", (event) => {
 // Ejemplo de initChat()
 async function initChat(siteId) {
     try {
-        const res = await fetch(`/api/config?siteId=${siteId}`);
+        const res = await fetch(`/api/config/${siteId}`);
         const botConfig = await res.json();
 
         // Configurar título del chat
-        document.getElementById("chat-title").textContent = botConfig.nombre;
+        document.getElementById("chat-title").textContent = botConfig.config?.nombre || "Asistente Virtual";
 
         // Agregar saludo inicial
         addMessage("bot", botConfig.respuestas?.saludo || "¡Hola! Bienvenido al chat 👋");
@@ -124,8 +123,8 @@ document.getElementById("clear-chat-btn").addEventListener("click", function () 
         if (msg.parentNode) {
             msg.remove();
         }
-        if (typeof initChat === "function" && typeof currentSiteId !== "undefined" && currentSiteId) {
-            initChat(currentSiteId); // 👈 reinicia el saludo
+        if (typeof initChat === "function" && typeof siteId !== "undefined" && siteId) {
+            initChat(siteId); // 👈 reinicia el saludo
         }
     }, 2000);
 });

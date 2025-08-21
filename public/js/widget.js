@@ -19,6 +19,20 @@ async function initChat(siteId) {
         // Configurar título del chat
         document.getElementById("chat-title").textContent = botConfig.config?.nombre || "Asistente Virtual";
 
+        // Configurar imagen del bot
+        if (botConfig.config?.imagen) {
+            document.getElementById("bot-avatar").src = botConfig.config.imagen;
+        }
+
+        // 👇 Sobrescribir la imagen de perfil dinámica
+        const styleElement = document.createElement("style");
+        styleElement.innerHTML = `
+            .bot .profile-pic {
+                background-image: url('${botConfig.config?.imagen || "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"}') !important;
+            }
+        `;
+        document.head.appendChild(styleElement);
+
         // Agregar saludo inicial
         addMessage("bot", botConfig.respuestas?.saludoInicial || "Estamos experimentando algunos problemas. Intente más tarde.");
     } catch (err) {
@@ -135,8 +149,6 @@ async function sendMessage() {
             <div class="time">${getTime()}</div>
         `;
     }
-
-
 }
 // Evento para enviar mensaje con Enter
 document.getElementById("userInput").addEventListener("keydown", function(e) {

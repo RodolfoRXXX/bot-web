@@ -73,9 +73,6 @@ body {
     background-size: cover;
     background-position: center;
 }
-.bot .profile-pic {
-    background-image: url('https://static.vecteezy.com/system/resources/previews/009/971/217/non_2x/chat-bot-icon-isolated-contour-symbol-illustration-vector.jpg'); /* Cambia por imagen del bot */
-}
 .user .profile-pic {
     background-image: url('https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_640.png'); /* Imagen vacía para usuario */
 }

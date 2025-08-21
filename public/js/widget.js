@@ -87,15 +87,56 @@ async function sendMessage() {
 
     // Reemplazar burbuja
     const typingBubble = document.getElementById(typingId);
+
+    // Reemplazar burbuja
     if (typingBubble) {
         const bubble = typingBubble.querySelector(".bubble");
 
+        // Detectar links en la respuesta del bot
+        let formattedReply = reply;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const urls = reply.match(urlRegex);
+
+        if (urls && urls.length > 0) {
+            // Sacamos los links del texto
+            formattedReply = reply.replace(urlRegex, "").trim();
+
+            // Agregamos cada link como botón
+            // Mapeo de dominios → nombres de redes
+            const domainMap = {
+                "facebook.com": "Facebook",
+                "instagram.com": "Instagram",
+                "twitter.com": "Twitter",
+                "x.com": "X (Twitter)",
+                "wa.me": "WhatsApp",
+                "web.whatsapp.com": "WhatsApp",
+                "t.me": "Telegram",
+                "youtube.com": "YouTube",
+                "linkedin.com": "LinkedIn",
+                "pinterest.com": "Pinterest"
+            };
+
+            const buttons = urls.map(url => {
+                const hostname = new URL(url).hostname.replace("www.", "");
+                const label = domainMap[hostname] || hostname; // Si no está en el mapa, usa el dominio
+                return `<a href="${url}" target="_blank">
+                            <button style="margin:4px; padding:6px 12px; border:none; background:#007bff; color:white; border-radius:8px; cursor:pointer;">
+                                🌐 ${label}
+                            </button>
+                        </a>`;
+            }).join(" ");
+
+            formattedReply += "<br><br>" + buttons;
+        }
+
         // Cambiar solo el texto del mensaje
         bubble.innerHTML = `
-            ${reply}
+            ${formattedReply}
             <div class="time">${getTime()}</div>
         `;
     }
+
+
 }
 // Evento para enviar mensaje con Enter
 document.getElementById("userInput").addEventListener("keydown", function(e) {

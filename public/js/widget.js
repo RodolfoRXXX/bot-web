@@ -2,6 +2,17 @@
 const urlParams = new URLSearchParams(window.location.search);
 const siteId = urlParams.get("siteId") || "defaultBot";
 
+// Sanitizer
+function sanitizeImageUrl(url) {
+    try {
+        const parsed = new URL(url);
+        if (["http:", "https:"].includes(parsed.protocol)) {
+            return parsed.href;
+        }
+    } catch (e) {}
+    return "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"; // fallback
+}
+
 // Escuchar mensajes desde el iframe padre
 window.addEventListener("message", (event) => {
     if (event.data.action === "initChat") {
@@ -21,7 +32,8 @@ async function initChat(siteId) {
 
         // Configurar imagen del bot
         if (botConfig.config?.imagen) {
-            document.getElementById("bot-avatar").src = botConfig.config.imagen;
+            document.getElementById("bot-avatar").src = sanitizeImageUrl(botConfig.config?.imagen);
+
         }
 
         // 👇 Sobrescribir la imagen de perfil dinámica

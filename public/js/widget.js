@@ -79,26 +79,39 @@ function getTime() {
 function addMessage(sender, text, isTemporary = false) {
     const chat = document.getElementById("chat");
     const time = getTime();
-    const id = "msg-" + Date.now();
+    const id = "msg-" + Date.now() + "-" + Math.floor(Math.random() * 10000);
+    const profilePic = document.createElement("div");
 
     // Crear elementos
     const messageDiv = document.createElement("div");
     messageDiv.classList.add("message", sender);
     messageDiv.id = id;
 
-    const profilePic = document.createElement("div");
-    profilePic.classList.add("profile-pic");
-
     const bubble = document.createElement("div");
     bubble.classList.add("bubble");
-    bubble.innerHTML = `
-        ${text}
-        <div class="time">${time}</div>
-    `;
 
-    messageDiv.appendChild(profilePic);
+    // Contenido del texto
+    if (sender === "user") {
+        // Usuario: texto plano (seguro)
+        bubble.textContent = text;
+    } else {
+        // Bot: permitir HTML (emoji, íconos, etc)
+        bubble.innerHTML = text;
+        profilePic.classList.add("profile-pic");
+        messageDiv.appendChild(profilePic);
+    }
+
+    // Agregar hora
+    const timeDiv = document.createElement("div");
+    timeDiv.classList.add("time");
+    timeDiv.textContent = time;
+    bubble.appendChild(timeDiv);
+
+    // Armar mensaje
     messageDiv.appendChild(bubble);
     chat.appendChild(messageDiv);
+
+    // Scrollear hasta abajo
     chat.scrollTop = chat.scrollHeight;
 
     return isTemporary ? id : null;

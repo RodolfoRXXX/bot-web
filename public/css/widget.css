@@ -57,7 +57,7 @@ body {
 .message {
     display: flex;
     margin-bottom: 10px;
-    align-items: flex-end;
+    align-items: flex-start;
 }
 .bot {
     flex-direction: row;
@@ -69,21 +69,29 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    margin: 0 5px;
+    margin: 5px;
     background-size: cover;
     background-position: center;
 }
 .user .profile-pic {
     background-image: url('https://cdn.pixabay.com/photo/2017/11/10/05/48/user-2935527_640.png'); /* Imagen vacía para usuario */
 }
+
 .bubble {
-    max-width: 60%;
-    padding: 8px 35px 15px 12px; /* deja espacio para la hora */
-    border-radius: 10px;
-    position: relative;
-    font-size: 14px;
-    word-wrap: break-word;
+  display: inline-block;
+  max-width: 60%;
+  padding: 8px 35px 15px 12px; /* deja espacio para la hora */
+  margin: 5px 0;
+  border-radius: 8px 8px 0 8px; /* forma tipo WhatsApp */
+  font-size: 14px;
+  line-height: 1.4;
+
+  background: #dcf8c6; /* verde claro típico de WhatsApp */
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15); /* sombra sutil */
+  position: relative;
+  word-wrap: break-word;
 }
+
 .bot .bubble {
     background: #fff;
     border-top-left-radius: 0;

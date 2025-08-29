@@ -22,7 +22,7 @@ async function fulfillmentHandler(req, res) {
         }
 
         // 🔑 Carga dinámica del archivo de handlers según el tipo
-        const botType = botConfig.tipo || "default"; 
+        const botType = botConfig.config.tipo || "default"; 
         const getIntentMap = require(`./handlers/${botType}BotHandler.js`);
 
         const intentMap = getIntentMap(botConfig);

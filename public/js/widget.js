@@ -2,6 +2,9 @@
 const urlParams = new URLSearchParams(window.location.search);
 const siteId = urlParams.get("siteId") || "defaultBot";
 
+let inactivityTimer; // ⏱️ para controlar inactividad
+let botActivo = true; // valor por defecto
+
 // Sanitizer
 function sanitizeImageUrl(url) {
     try {
@@ -27,6 +30,8 @@ async function initChat(siteId) {
         const res = await fetch(`/api/config/${siteId}`);
         const botConfig = await res.json();
 
+        botActivo = botConfig.config?.activo === 1; // 👈 chequear campo "activo"
+
         // Configurar título del chat
         document.getElementById("chat-title").textContent = botConfig.config?.nombre || "Asistente Virtual";
 
@@ -45,8 +50,21 @@ async function initChat(siteId) {
         `;
         document.head.appendChild(styleElement);
 
-        // Agregar saludo inicial
-        addMessage("bot", botConfig.respuestas?.saludoInicial || "Estamos experimentando algunos problemas. Intente más tarde.");
+        const input = document.getElementById("userInput");
+
+        if (!botActivo) {
+            // 🚫 Bot desactivado
+            addMessage("bot", botConfig.config?.mensajeInactivo || "⚠️ El asistente está fuera de servicio.");
+            input.disabled = true;
+            return;
+        }
+
+        // ✅ Bot activo → saludo inicial
+        addMessage("bot", botConfig.respuestas?.saludoInicial || "👋 Hola! Soy tu asistente virtual.");
+    
+        // Activamos control de inactividad
+        resetInactivityTimer();
+    
     } catch (err) {
         console.error("Error cargando configuración:", err);
     }
@@ -63,26 +81,40 @@ function addMessage(sender, text, isTemporary = false) {
     const time = getTime();
     const id = "msg-" + Date.now();
 
-    chat.innerHTML += `
-        <div class="message ${sender}" id="${id}">
-            <div class="profile-pic"></div>
-            <div class="bubble">
-                ${text}
-                <div class="time">${time}</div>
-            </div>
-        </div>
+    // Crear elementos
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message", sender);
+    messageDiv.id = id;
+
+    const profilePic = document.createElement("div");
+    profilePic.classList.add("profile-pic");
+
+    const bubble = document.createElement("div");
+    bubble.classList.add("bubble");
+    bubble.innerHTML = `
+        ${text}
+        <div class="time">${time}</div>
     `;
+
+    messageDiv.appendChild(profilePic);
+    messageDiv.appendChild(bubble);
+    chat.appendChild(messageDiv);
     chat.scrollTop = chat.scrollHeight;
+
     return isTemporary ? id : null;
 }
 // Enviar mensaje
 async function sendMessage() {
+    if (!botActivo) return; // 🚫 no enviar si el bot está apagado
+
     const input = document.getElementById("userInput");
     const message = input.value.trim();
     if (!message) return;
 
     addMessage("user", message);
     input.value = "";
+
+    resetInactivityTimer(); // 👈 reiniciar temporizador de inactividad
 
     // Animación "Escribiendo..."
     const typingId = addMessage("bot", `
@@ -171,24 +203,30 @@ document.getElementById("userInput").addEventListener("keydown", function(e) {
 });
 // Limpiar el chat
 document.getElementById("clear-chat-btn").addEventListener("click", function () {
+    resetChat();
+});
+
+// 🔹 Funciones extra: inactividad + reset
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+        addMessage("bot", "👋 Gracias por conversar conmigo. ¡Hasta pronto!");
+        setTimeout(() => resetChat(), 3000); // espera 3s y reinicia
+    }, 5 * 60 * 1000); // ⏱️ 5 minutos
+}
+
+function resetChat() {
     const chat = document.getElementById("chat");
-
-    // Limpia el chat
     chat.innerHTML = "";
-
-    // Agrega mensaje temporal
     const msg = document.createElement("div");
     msg.classList.add("system-message");
     msg.textContent = "💬 Chat reiniciado";
     chat.appendChild(msg);
 
-    // Borra el mensaje después de 2 segundos y reinicia el saludo
     setTimeout(() => {
-        if (msg.parentNode) {
-            msg.remove();
-        }
+        if (msg.parentNode) msg.remove();
         if (typeof initChat === "function" && typeof siteId !== "undefined" && siteId) {
-            initChat(siteId); // 👈 reinicia el saludo
+            initChat(siteId);
         }
     }, 2000);
-});
+}

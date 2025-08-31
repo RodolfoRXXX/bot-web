@@ -1,7 +1,11 @@
 
 const dialogflow = require("@google-cloud/dialogflow");
 const uuid = require("uuid");
-const CREDENTIALS = require("../config/dialogflow-key.json");
+const path = require("path");
+
+const CREDENTIALS = require(
+  process.env.DIALOGFLOW_KEY_PATH || path.join(__dirname, "../config/dialogflow-key.json")
+);
 
 const sessionId = uuid.v4();
 const projectId = CREDENTIALS.project_id;

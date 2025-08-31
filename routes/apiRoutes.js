@@ -10,7 +10,7 @@ const router = express.Router();
 
 // Ruta widget
 router.get("/widget", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "../views/widget.html"));
+  res.sendFile(path.join(__dirname, "../views/widget.html"));
 });
 
 // Ruta para obtener configuración del bot según siteId

@@ -44,6 +44,8 @@
     iframe.style.right = "20px";
     iframe.style.width = "350px";
     iframe.style.height = "500px";
+    iframe.style.maxWidth = "100%";
+    iframe.style.maxHeight = "100%";
     iframe.style.border = "none";
     iframe.style.borderRadius = "10px";
     iframe.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
@@ -101,7 +103,7 @@
             // Ícono de abrir (💬)
             btn.innerHTML = "💬";
             btn.title = "Abrir chat";
-            btn.style.background = "#007bff";
+            btn.style.background = "#3496ffff";
         }
     });
 

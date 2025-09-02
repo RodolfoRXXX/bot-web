@@ -199,3 +199,6 @@ Luego de eso, todo nuevo cliente tiene costos marginales bajos y alto margen de 
 
 ✅ Riesgo controlado: Si validás bien, el costo de entrada no es muy alto ($2,000 máx. para MVP completo).
 
+Cambios entre local y producción
+
+url render: https://my-bot-web.onrender.com

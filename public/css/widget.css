@@ -129,6 +129,54 @@ button {
     color: white;
     cursor: pointer;
 }
+
+.bubble-and-buttons {
+    display: flex;
+    flex-direction: column; /* ✅ burbuja arriba, botones debajo */
+    align-items: flex-start;
+    max-width: 80%; /* opcional */
+}
+
+/*--- Estilo Botones ---*/
+
+.link-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.link-buttons a button {
+    padding: 10px 18px;
+    border: 2px solid #075e54;
+    border-radius: 8px;
+    background-color: #ffffff; /* blanco, si quieres transparente usa "transparent" */
+    color: #075e54;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.08);
+    transition: all 0.25s ease;
+}
+
+/* Hover */
+.link-buttons a button:hover {
+    background-color: #075e54;
+    color: #ffffff;
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Active (clic presionado): más plano */
+.link-buttons a button:active {
+    background-color: #064c45;
+    color: #ffffff;
+    transform: translateY(0);
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/*--- ---*/
+
 /* Animación puntos "escribiendo..." */
 .typing-dots {
     display: inline-block;

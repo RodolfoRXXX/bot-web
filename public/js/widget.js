@@ -5,6 +5,20 @@ const siteId = urlParams.get("siteId") || "defaultBot";
 let inactivityTimer; // ⏱️ para controlar inactividad
 let botActivo = true; // valor por defecto
 
+// Mapeo de dominios → nombres de redes
+const domainMap = {
+    "facebook.com": "Facebook",
+    "instagram.com": "Instagram",
+    "twitter.com": "Twitter",
+    "x.com": "X (Twitter)",
+    "wa.me": "WhatsApp",
+    "web.whatsapp.com": "WhatsApp",
+    "t.me": "Telegram",
+    "youtube.com": "YouTube",
+    "linkedin.com": "LinkedIn",
+    "pinterest.com": "Pinterest"
+};
+
 // Sanitizer
 function sanitizeImageUrl(url) {
     try {
@@ -117,6 +131,7 @@ function addMessage(sender, text, isTemporary = false) {
     return isTemporary ? id : null;
 }
 // Enviar mensaje
+// Enviar mensaje
 async function sendMessage() {
     if (!botActivo) return; // 🚫 no enviar si el bot está apagado
 
@@ -143,7 +158,7 @@ async function sendMessage() {
         body: JSON.stringify({ 
             message,
             siteId
-         })
+        })
     });
 
     const data = await res.json();
@@ -159,7 +174,6 @@ async function sendMessage() {
     // Reemplazar burbuja
     const typingBubble = document.getElementById(typingId);
 
-    // Reemplazar burbuja
     if (typingBubble) {
         const bubble = typingBubble.querySelector(".bubble");
 
@@ -168,45 +182,57 @@ async function sendMessage() {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
         const urls = reply.match(urlRegex);
 
+        // Si hay links → sacarlos del texto
         if (urls && urls.length > 0) {
-            // Sacamos los links del texto
             formattedReply = reply.replace(urlRegex, "").trim();
-
-            // Agregamos cada link como botón
-            // Mapeo de dominios → nombres de redes
-            const domainMap = {
-                "facebook.com": "Facebook",
-                "instagram.com": "Instagram",
-                "twitter.com": "Twitter",
-                "x.com": "X (Twitter)",
-                "wa.me": "WhatsApp",
-                "web.whatsapp.com": "WhatsApp",
-                "t.me": "Telegram",
-                "youtube.com": "YouTube",
-                "linkedin.com": "LinkedIn",
-                "pinterest.com": "Pinterest"
-            };
-
-            const buttons = urls.map(url => {
-                const hostname = new URL(url).hostname.replace("www.", "");
-                const label = domainMap[hostname] || hostname; // Si no está en el mapa, usa el dominio
-                return `<a href="${url}" target="_blank">
-                            <button style="margin:4px; padding:6px 12px; border:none; background:#007bff; color:white; border-radius:8px; cursor:pointer;">
-                                🌐 ${label}
-                            </button>
-                        </a>`;
-            }).join(" ");
-
-            formattedReply += "<br><br>" + buttons;
         }
 
-        // Cambiar solo el texto del mensaje
+        // Actualizar contenido de la burbuja
         bubble.innerHTML = `
             ${formattedReply}
             <div class="time">${getTime()}</div>
         `;
+
+        // --- ✅ Nuevo wrapper para burbuja + botones ---
+        const messageDiv = typingBubble; // el contenedor de la respuesta
+
+        // Crear wrapper vertical
+        const contentWrapper = document.createElement("div");
+        contentWrapper.classList.add("bubble-and-buttons");
+
+        // Mover la burbuja al wrapper
+        messageDiv.removeChild(bubble);
+        contentWrapper.appendChild(bubble);
+
+        // Si hay links → agregamos los botones debajo
+        if (urls && urls.length > 0) {
+
+            const buttonsContainer = document.createElement("div");
+            buttonsContainer.classList.add("link-buttons");
+
+            urls.forEach(url => {
+                const hostname = new URL(url).hostname.replace("www.", "");
+                const label = domainMap[hostname] || hostname;
+
+                const link = document.createElement("a");
+                link.href = url;
+                link.target = "_blank";
+
+                const button = document.createElement("button");
+                button.textContent = `▫️ ${label}`;
+
+                link.appendChild(button);
+                buttonsContainer.appendChild(link);
+            });
+
+            contentWrapper.appendChild(buttonsContainer);
+        }
+
+        // Insertar wrapper en el contenedor del mensaje
+        messageDiv.appendChild(contentWrapper);
     }
 }
+
 // Evento para enviar mensaje con Enter
 document.getElementById("userInput").addEventListener("keydown", function(e) {
     if (e.key === "Enter" && !e.shiftKey) { 

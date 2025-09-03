@@ -38,7 +38,8 @@
     document.head.appendChild(style);
 
     const iframe = document.createElement("iframe");
-    iframe.src = `https://my-bot-web.onrender.com/widget?siteId=${encodeURIComponent(siteId)}`;
+    //iframe.src = `https://my-bot-web.onrender.com/widget?siteId=${encodeURIComponent(siteId)}`;
+    iframe.src = `http://localhost:3000/widget?siteId=${encodeURIComponent(siteId)}`;
     iframe.style.position = "fixed";
     iframe.style.bottom = "90px";
     iframe.style.right = "20px";

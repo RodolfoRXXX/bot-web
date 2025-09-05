@@ -30,6 +30,93 @@ function sanitizeImageUrl(url) {
     return "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"; // fallback
 }
 
+// Muestra botones de acción
+function showOptionButtons(opciones, configColor) {
+    const chat = document.getElementById("chat");
+
+    // contenedor de botones
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.classList.add("link-buttons");
+
+    // recorrer opciones (salteamos "saludo")
+    Object.entries(opciones).forEach(([label, intent]) => {
+        if (label.toLowerCase() === "saludo") return;
+
+        const button = document.createElement("button");
+        button.classList.add("option-button");
+        button.textContent = label;
+
+        // 🎨 aplicar color dinámico
+        button.style.border = `2px solid ${configColor?.boton || "#25d366"}`;
+        button.style.color = configColor?.boton || "#25d366";
+        button.style.background = "white";
+
+        button.addEventListener("mouseover", () => {
+            button.style.background = configColor?.boton || "#25d366";
+            button.style.color = "white";
+        });
+
+        button.addEventListener("mouseout", () => {
+            button.style.background = "white";
+            button.style.color = configColor?.boton || "#25d366";
+        });
+
+        // Al hacer clic → enviar mensaje como si fuera usuario
+        button.addEventListener("click", () => {
+            addMessage("user", label);
+
+            // eliminar botones
+            buttonsContainer.remove();
+
+            // enviar el intent
+            sendIntent(intent);
+        });
+
+        buttonsContainer.appendChild(button);
+    });
+
+    chat.appendChild(buttonsContainer);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// Función que simula un intent
+async function sendIntent(intent) {
+    resetInactivityTimer();
+
+    // Animación "Escribiendo..."
+    const typingId = addMessage("bot", `
+        <div class="typing-dots">
+            <span></span><span></span><span></span>
+        </div>
+    `, true);
+
+    // Llamar al backend con el intent
+    const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            intent,  // 👈 enviamos el intent en vez del mensaje de usuario
+            siteId
+        })
+    });
+
+    const data = await res.json();
+    const reply = data.reply;
+
+    // Simular demora
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Reemplazar burbuja
+    const typingBubble = document.getElementById(typingId);
+    if (typingBubble) {
+        const bubble = typingBubble.querySelector(".bubble");
+        bubble.innerHTML = `
+            ${reply}
+            <div class="time">${getTime()}</div>
+        `;
+    }
+}
+
 // Escuchar mensajes desde el iframe padre
 window.addEventListener("message", (event) => {
     if (event.data.action === "initChat") {
@@ -48,6 +135,7 @@ async function initChat(siteId) {
 
         // Configurar título del chat
         document.getElementById("chat-title").textContent = botConfig.config?.nombre || "Asistente Virtual";
+        document.getElementById("chat-subtitle").textContent = botConfig.config?.empresa  || "";
 
         // Configurar imagen del bot
         if (botConfig.config?.imagen) {
@@ -55,13 +143,41 @@ async function initChat(siteId) {
 
         }
 
-        // 👇 Sobrescribir la imagen de perfil dinámica
+        // 👇 Perfíl dinámico
         const styleElement = document.createElement("style");
         styleElement.innerHTML = `
             .bot .profile-pic {
                 background-image: url('${botConfig.config?.imagen || "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"}') !important;
             }
+
+            /* 🎨 Colores dinámicos */
+            #chatHeader {
+                background-color: ${botConfig.config?.color?.encabezado || "#075e54"} !important;
+                color: white !important;
+            }
+
+            body {
+                background-color: ${botConfig.config?.color?.fondo || "#ffffff"} !important;
+            }
+
+            #chat-send, 
+            .link-buttons {
+                background-color: ${botConfig.config?.color?.boton || "#25d366"} !important;
+                color: white !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 6px 12px !important;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            #chat-send:hover, 
+            .link-buttons:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            }
         `;
+
         document.head.appendChild(styleElement);
 
         const input = document.getElementById("userInput");
@@ -75,6 +191,15 @@ async function initChat(siteId) {
 
         // ✅ Bot activo → saludo inicial
         addMessage("bot", botConfig.respuestas?.saludoInicial || "👋 Hola! Soy tu asistente virtual.");
+
+        // ✅ Bot activo → saludo inicial + segundo saludos + opciones
+        addMessage("bot", botConfig.respuestas?.saludo || "Qué puedo hacer por vos?");
+
+        // Mostrar botones con opciones
+        if (botConfig.respuestas?.opciones) {
+            console.log(...botConfig.respuestas?.opciones);
+            showOptionButtons(...botConfig.respuestas?.opciones);
+        }
     
         // Activamos control de inactividad
         resetInactivityTimer();

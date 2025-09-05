@@ -14,14 +14,17 @@
     <!-- Encabezado del chat -->
     <div id="chatHeader">
         <img id="bot-avatar" src="" alt="Avatar del bot">
-        <p id="chat-title"></p>
+        <div class="chatTitle">
+            <p id="chat-title"></p>
+            <p id="chat-subtitle"></p>
+        </div>
         <button id="clear-chat-btn" title="Limpiar chat">🗑</button>
     </div>
 
     <div id="chat"></div>
     <div id="inputArea">
         <input type="text" id="userInput" placeholder="Escribí tu mensaje..."/>
-        <button onclick="sendMessage()">➤</button>
+        <button id="chat-send" onclick="sendMessage()">➤</button>
     </div>
 
     <script src="/js/widget.js"></script>

@@ -19,6 +19,22 @@ const domainMap = {
     "pinterest.com": "Pinterest"
 };
 
+// 
+function structJsonToJs(fields) {
+  const obj = {};
+  for (const key in fields) {
+    const value = fields[key];
+    if (value.stringValue !== undefined) {
+      obj[key] = value.stringValue;
+    } else if (value.listValue !== undefined) {
+      obj[key] = value.listValue.values.map(v => v.stringValue);
+    } else if (value.structValue !== undefined) {
+      obj[key] = structJsonToJs(value.structValue.fields);
+    }
+  }
+  return obj;
+}
+
 // Sanitizer
 function sanitizeImageUrl(url) {
     try {
@@ -30,8 +46,33 @@ function sanitizeImageUrl(url) {
     return "https://cdn-icons-png.flaticon.com/512/4712/4712109.png"; // fallback
 }
 
+// Volver al menú
+function addBackToMenuButton(opciones) {
+    const chat = document.getElementById("chat");
+
+    // contenedor
+    const backContainer = document.createElement("div");
+    backContainer.classList.add("link-buttons");
+
+    const backButton = document.createElement("button");
+    backButton.classList.add("option-button");
+    backButton.textContent = "🔙 Volver al menú de opciones";
+
+    backButton.addEventListener("click", () => {
+        // mostrar nuevamente las opciones
+        showOptionButtons(opciones);
+
+        // eliminar este botón de "volver" después de usarlo
+        backContainer.remove();
+    });
+
+    backContainer.appendChild(backButton);
+    chat.appendChild(backContainer);
+    chat.scrollTop = chat.scrollHeight;
+}
+
 // Muestra botones de acción
-function showOptionButtons(opciones, configColor) {
+function showOptionButtons(opciones) {
     const chat = document.getElementById("chat");
 
     // contenedor de botones
@@ -46,27 +87,14 @@ function showOptionButtons(opciones, configColor) {
         button.classList.add("option-button");
         button.textContent = label;
 
-        // 🎨 aplicar color dinámico
-        button.style.border = `2px solid ${configColor?.boton || "#25d366"}`;
-        button.style.color = configColor?.boton || "#25d366";
-        button.style.background = "white";
-
-        button.addEventListener("mouseover", () => {
-            button.style.background = configColor?.boton || "#25d366";
-            button.style.color = "white";
-        });
-
-        button.addEventListener("mouseout", () => {
-            button.style.background = "white";
-            button.style.color = configColor?.boton || "#25d366";
-        });
-
         // Al hacer clic → enviar mensaje como si fuera usuario
         button.addEventListener("click", () => {
             addMessage("user", label);
 
             // eliminar botones
             buttonsContainer.remove();
+            
+            console.log(intent);
 
             // enviar el intent
             sendIntent(intent);
@@ -79,8 +107,120 @@ function showOptionButtons(opciones, configColor) {
     chat.scrollTop = chat.scrollHeight;
 }
 
+// Mapea las url en botones clickeables
+function formatBotReply(reply) {
+    const contentWrapper = document.createElement("div");
+    contentWrapper.classList.add("bubble-and-buttons");
+
+    // Caso 1: string plano
+    if (typeof reply === "string") {
+        appendBubbleWithLinks(contentWrapper, reply);
+    }
+
+    // Caso 2: objeto con texto y arrays
+    else if (typeof reply === "object" && reply !== null) {
+        // Texto (puede tener links dentro)
+        if (reply.texto) {
+            appendBubbleWithLinks(contentWrapper, reply.texto);
+        }
+
+        // Arrays → botones
+        for (const key in reply) {
+            const value = reply[key];
+            if (Array.isArray(value)) {
+                const buttonsContainer = document.createElement("div");
+                buttonsContainer.classList.add("link-buttons");
+
+                value.forEach(item => {
+                    const link = document.createElement("a");
+                    const button = document.createElement("button");
+
+                    if (item.includes?.("@")) {
+                        link.href = `mailto:${item}`;
+                        button.textContent = `✉️ ${item}`;
+                    }
+                    else if (/^[\d\-\+\s]+$/.test(item)) {
+                        link.href = `tel:${item}`;
+                        button.textContent = `📞 ${item}`;
+                    }
+                    else if (item.startsWith("http")) {
+                        const hostname = new URL(item).hostname.replace("www.", "");
+                        const label = domainMap[hostname] || hostname;
+                        link.href = item;
+                        link.target = "_blank";
+                        button.textContent = `🌐 ${label}`;
+                    }
+                    else {
+                        link.href = "#";
+                        button.textContent = item;
+                    }
+
+                    //link.classList.add("option-button");
+                    link.appendChild(button);
+                    buttonsContainer.appendChild(link);
+                });
+
+                contentWrapper.appendChild(buttonsContainer);
+            }
+        }
+    }
+
+    // 👇 SIEMPRE agregar el botón de volver
+    setTimeout(() => {
+        if (window.botConfig?.respuestas?.opciones) {
+            addBackToMenuButton(...window.botConfig.respuestas.opciones);
+        }
+    }, 300);
+
+    return contentWrapper;
+}
+
+// 🔹 Función auxiliar para no repetir código
+function appendBubbleWithLinks(wrapper, text) {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const urls = text.match(urlRegex);
+
+    // Texto sin links
+    let formattedText = text;
+    if (urls && urls.length > 0) {
+        formattedText = text.replace(urlRegex, "").trim();
+    }
+
+    // Burbuja con texto
+    const bubble = document.createElement("div");
+    bubble.classList.add("bubble");
+    bubble.innerHTML = `
+        ${formattedText}
+        <div class="time">${getTime()}</div>
+    `;
+    wrapper.appendChild(bubble);
+
+    // Si había links, generar botones
+    if (urls && urls.length > 0) {
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.classList.add("link-buttons");
+
+        urls.forEach(url => {
+            const hostname = new URL(url).hostname.replace("www.", "");
+            const label = domainMap[hostname] || hostname;
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.target = "_blank";
+
+            const button = document.createElement("button");
+            button.textContent = `▫️ ${label}`;
+
+            link.appendChild(button);
+            buttonsContainer.appendChild(link);
+        });
+
+        wrapper.appendChild(buttonsContainer);
+    }
+}
+
 // Función que simula un intent
-async function sendIntent(intent) {
+async function sendIntent(message) {
     resetInactivityTimer();
 
     // Animación "Escribiendo..."
@@ -95,25 +235,52 @@ async function sendIntent(intent) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-            intent,  // 👈 enviamos el intent en vez del mensaje de usuario
+            message,  // 👈 enviamos el intent en vez del mensaje de usuario
             siteId
         })
     });
 
     const data = await res.json();
-    const reply = data.reply;
 
-    // Simular demora
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    let reply;
+
+    // Caso 1: texto plano (lo de siempre)
+    if (data.reply.fields) {
+       reply = structJsonToJs(data.reply.fields);
+       // Simular demora
+       await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    // Caso 2: payload estructurado (contacto)
+    else {
+        console.log(data);
+        reply = data.reply;
+        // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
+        const words = reply.split(" ").length;
+        let delay = Math.min(Math.max(words * 120, 1000), 3500);
+
+       // Esperar antes de mostrar la respuesta
+       await new Promise(resolve => setTimeout(resolve, delay));
+    }
 
     // Reemplazar burbuja
     const typingBubble = document.getElementById(typingId);
+
     if (typingBubble) {
-        const bubble = typingBubble.querySelector(".bubble");
-        bubble.innerHTML = `
-            ${reply}
-            <div class="time">${getTime()}</div>
-        `;
+        const messageDiv = typingBubble;
+
+        // limpiar solo la burbuja, no el contenedor completo
+        messageDiv.querySelectorAll(".bubble, .bubble-and-buttons").forEach(el => el.remove());
+
+        // volver a agregar el profilePic si no existe
+        let profilePic = messageDiv.querySelector(".profile-pic");
+        if (!profilePic) {
+            profilePic = document.createElement("div");
+            profilePic.classList.add("profile-pic");
+            messageDiv.insertBefore(profilePic, messageDiv.firstChild);
+        }
+
+        // ahora insertar el nuevo contenido (texto + links formateados)
+        messageDiv.appendChild(formatBotReply(reply));
     }
 }
 
@@ -130,6 +297,8 @@ async function initChat(siteId) {
     try {
         const res = await fetch(`/api/config/${siteId}`);
         const botConfig = await res.json();
+
+        window.botConfig = botConfig;
 
         botActivo = botConfig.config?.activo === 1; // 👈 chequear campo "activo"
 
@@ -160,21 +329,27 @@ async function initChat(siteId) {
                 background-color: ${botConfig.config?.color?.fondo || "#ffffff"} !important;
             }
 
-            #chat-send, 
-            .link-buttons {
+            #chat-send {
                 background-color: ${botConfig.config?.color?.boton || "#25d366"} !important;
                 color: white !important;
                 border: none !important;
                 border-radius: 8px !important;
                 padding: 6px 12px !important;
                 box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .option-button {
+                background-color: white !important;
+                color: ${botConfig.config?.color?.encabezado || "#25d366"} !important;
+                border: ${botConfig.config?.color?.encabezado || "#25d366"} !important;
+                border-radius: 8px !important;
+                padding: 6px 12px !important;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
             }
 
             #chat-send:hover, 
-            .link-buttons:hover {
+            .option-button:hover {
                 transform: scale(1.05);
-                box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             }
         `;
 
@@ -197,7 +372,6 @@ async function initChat(siteId) {
 
         // Mostrar botones con opciones
         if (botConfig.respuestas?.opciones) {
-            console.log(...botConfig.respuestas?.opciones);
             showOptionButtons(...botConfig.respuestas?.opciones);
         }
     
@@ -255,7 +429,7 @@ function addMessage(sender, text, isTemporary = false) {
 
     return isTemporary ? id : null;
 }
-// Enviar mensaje
+
 // Enviar mensaje
 async function sendMessage() {
     if (!botActivo) return; // 🚫 no enviar si el bot está apagado
@@ -287,74 +461,46 @@ async function sendMessage() {
     });
 
     const data = await res.json();
-    const reply = data.reply;
+    
+    let reply;
 
-    // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
-    const words = reply.split(" ").length;
-    let delay = Math.min(Math.max(words * 120, 1000), 3500);
+    // Caso 1: texto plano (lo de siempre)
+    if (data.reply.fields) {
+       reply = structJsonToJs(data.reply.fields);
+       // Simular demora
+       await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    // Caso 2: payload estructurado (contacto)
+    else {
+        console.log(data);
+        reply = data.reply;
+        // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
+        const words = reply.split(" ").length;
+        let delay = Math.min(Math.max(words * 120, 1000), 3500);
 
-    // Esperar antes de mostrar la respuesta
-    await new Promise(resolve => setTimeout(resolve, delay));
+       // Esperar antes de mostrar la respuesta
+       await new Promise(resolve => setTimeout(resolve, delay));
+    }
 
     // Reemplazar burbuja
     const typingBubble = document.getElementById(typingId);
 
     if (typingBubble) {
-        const bubble = typingBubble.querySelector(".bubble");
+        const messageDiv = typingBubble;
 
-        // Detectar links en la respuesta del bot
-        let formattedReply = reply;
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const urls = reply.match(urlRegex);
+        // limpiar solo la burbuja, no el contenedor completo
+        messageDiv.querySelectorAll(".bubble, .bubble-and-buttons").forEach(el => el.remove());
 
-        // Si hay links → sacarlos del texto
-        if (urls && urls.length > 0) {
-            formattedReply = reply.replace(urlRegex, "").trim();
+        // volver a agregar el profilePic si no existe
+        let profilePic = messageDiv.querySelector(".profile-pic");
+        if (!profilePic) {
+            profilePic = document.createElement("div");
+            profilePic.classList.add("profile-pic");
+            messageDiv.insertBefore(profilePic, messageDiv.firstChild);
         }
 
-        // Actualizar contenido de la burbuja
-        bubble.innerHTML = `
-            ${formattedReply}
-            <div class="time">${getTime()}</div>
-        `;
-
-        // --- ✅ Nuevo wrapper para burbuja + botones ---
-        const messageDiv = typingBubble; // el contenedor de la respuesta
-
-        // Crear wrapper vertical
-        const contentWrapper = document.createElement("div");
-        contentWrapper.classList.add("bubble-and-buttons");
-
-        // Mover la burbuja al wrapper
-        messageDiv.removeChild(bubble);
-        contentWrapper.appendChild(bubble);
-
-        // Si hay links → agregamos los botones debajo
-        if (urls && urls.length > 0) {
-
-            const buttonsContainer = document.createElement("div");
-            buttonsContainer.classList.add("link-buttons");
-
-            urls.forEach(url => {
-                const hostname = new URL(url).hostname.replace("www.", "");
-                const label = domainMap[hostname] || hostname;
-
-                const link = document.createElement("a");
-                link.href = url;
-                link.target = "_blank";
-
-                const button = document.createElement("button");
-                button.textContent = `▫️ ${label}`;
-
-                link.appendChild(button);
-                buttonsContainer.appendChild(link);
-            });
-
-            contentWrapper.appendChild(buttonsContainer);
-        }
-
-        // Insertar wrapper en el contenedor del mensaje
-        messageDiv.appendChild(contentWrapper);
+        // ahora insertar el nuevo contenido (texto + links formateados)
+        messageDiv.appendChild(formatBotReply(reply));
     }
 }
 
@@ -376,7 +522,7 @@ function resetInactivityTimer() {
     inactivityTimer = setTimeout(() => {
         addMessage("bot", "👋 Gracias por conversar conmigo. ¡Hasta pronto!");
         setTimeout(() => resetChat(), 3000); // espera 3s y reinicia
-    }, 5 * 60 * 1000); // ⏱️ 5 minutos
+    }, 10 * 60 * 1000); // ⏱️ 5 minutos
 }
 
 function resetChat() {

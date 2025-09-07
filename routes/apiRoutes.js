@@ -86,6 +86,7 @@ router.post("/api/chat", async (req, res) => {
     let reply =
       result.fulfillmentText ||
       result.fulfillmentMessages?.[0]?.text?.text?.[0] ||
+      result.webhookPayload ||
       "No entendí eso.";
 
     res.send({ reply });

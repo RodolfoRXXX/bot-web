@@ -32,6 +32,21 @@ module.exports = function(botConfig) {
     }
   });
 
+  intentMap.set("faq", (agent) => {
+    const faq = botConfig?.respuestas?.faqe;
+
+    console.log(faq);
+
+    if (faq) {
+      agent.add(new Payload(agent.UNSPECIFIED, faq, {
+        sendAsMessage: true,
+        rawPayload: true
+      }));
+    } else {
+      agent.add("Intente nuevamente");
+    }
+  });
+
   intentMap.set("direccion", (agent) => {
     agent.add(botConfig?.respuestas?.ubicacion || "Intente nuevamente");
   });

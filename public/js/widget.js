@@ -19,22 +19,6 @@ const domainMap = {
     "pinterest.com": "Pinterest"
 };
 
-// 
-function structJsonToJs(fields) {
-  const obj = {};
-  for (const key in fields) {
-    const value = fields[key];
-    if (value.stringValue !== undefined) {
-      obj[key] = value.stringValue;
-    } else if (value.listValue !== undefined) {
-      obj[key] = value.listValue.values.map(v => v.stringValue);
-    } else if (value.structValue !== undefined) {
-      obj[key] = structJsonToJs(value.structValue.fields);
-    }
-  }
-  return obj;
-}
-
 // Sanitizer
 function sanitizeImageUrl(url) {
     try {
@@ -93,8 +77,6 @@ function showOptionButtons(opciones) {
 
             // eliminar botones
             buttonsContainer.remove();
-            
-            console.log(intent);
 
             // enviar el intent
             sendIntent(intent);
@@ -112,56 +94,76 @@ function formatBotReply(reply) {
     const contentWrapper = document.createElement("div");
     contentWrapper.classList.add("bubble-and-buttons");
 
-    // Caso 1: string plano
+    // 🔹 Caso 3: Respuesta simple (string plano)
     if (typeof reply === "string") {
         appendBubbleWithLinks(contentWrapper, reply);
     }
 
-    // Caso 2: objeto con texto y arrays
+    // 🔹 Caso 1: Texto + arrays (estructura tipo medios/redes/texto)
     else if (typeof reply === "object" && reply !== null) {
-        // Texto (puede tener links dentro)
-        if (reply.texto) {
-            appendBubbleWithLinks(contentWrapper, reply.texto);
+        // Detectamos si hay un "texto"
+        if (reply.texto?.stringValue) {
+            appendBubbleWithLinks(contentWrapper, reply.texto.stringValue);
         }
 
-        // Arrays → botones
+        // Detectamos si hay arrays como "medios" o "redes"
         for (const key in reply) {
             const value = reply[key];
-            if (Array.isArray(value)) {
+
+            if (value?.kind === "listValue" && value.listValue?.values) {
                 const buttonsContainer = document.createElement("div");
                 buttonsContainer.classList.add("link-buttons");
 
-                value.forEach(item => {
+                value.listValue.values.forEach(item => {
+                    if (!item.stringValue) return;
+
+                    const str = item.stringValue;
                     const link = document.createElement("a");
                     const button = document.createElement("button");
 
-                    if (item.includes?.("@")) {
-                        link.href = `mailto:${item}`;
-                        button.textContent = `✉️ ${item}`;
+                    if (str.includes?.("@")) {
+                        link.href = `mailto:${str}`;
+                        button.textContent = `✉️ ${str}`;
                     }
-                    else if (/^[\d\-\+\s]+$/.test(item)) {
-                        link.href = `tel:${item}`;
-                        button.textContent = `📞 ${item}`;
+                    else if (/^[\d\-\+\s]+$/.test(str)) {
+                        link.href = `tel:${str}`;
+                        button.textContent = `📞 ${str}`;
                     }
-                    else if (item.startsWith("http")) {
-                        const hostname = new URL(item).hostname.replace("www.", "");
+                    else if (str.startsWith("http")) {
+                        const hostname = new URL(str).hostname.replace("www.", "");
                         const label = domainMap[hostname] || hostname;
-                        link.href = item;
+                        link.href = str;
                         link.target = "_blank";
                         button.textContent = `🌐 ${label}`;
                     }
                     else {
                         link.href = "#";
-                        button.textContent = item;
+                        button.textContent = str;
                     }
-
-                    //link.classList.add("option-button");
                     link.appendChild(button);
                     buttonsContainer.appendChild(link);
                 });
-
                 contentWrapper.appendChild(buttonsContainer);
             }
+        }
+
+        // 🔹 Caso 2: Pregunta/Respuesta (FAQ)
+        // Si no es listValue, pero sí pares clave:valor
+        const keys = Object.keys(reply);
+        if (keys.length > 0 && keys.every(k => reply[k]?.kind === "stringValue")) {
+            keys.forEach(key => {
+                const pregunta = key;
+                const respuesta = reply[key].stringValue;
+
+                const bubble = document.createElement("div");
+                bubble.classList.add("bubble");
+                bubble.innerHTML = `
+                    <strong>${pregunta}</strong><br>
+                    ${respuesta}
+                    <div class="time">${getTime()}</div>
+                `;
+                contentWrapper.appendChild(bubble);
+            });
         }
     }
 
@@ -174,6 +176,10 @@ function formatBotReply(reply) {
 
     return contentWrapper;
 }
+
+
+
+
 
 // 🔹 Función auxiliar para no repetir código
 function appendBubbleWithLinks(wrapper, text) {
@@ -246,13 +252,12 @@ async function sendIntent(message) {
 
     // Caso 1: texto plano (lo de siempre)
     if (data.reply.fields) {
-       reply = structJsonToJs(data.reply.fields);
+       reply = data.reply.fields;
        // Simular demora
        await new Promise(resolve => setTimeout(resolve, 1000));
     }
     // Caso 2: payload estructurado (contacto)
     else {
-        console.log(data);
         reply = data.reply;
         // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
         const words = reply.split(" ").length;
@@ -287,7 +292,6 @@ async function sendIntent(message) {
 // Escuchar mensajes desde el iframe padre
 window.addEventListener("message", (event) => {
     if (event.data.action === "initChat") {
-        console.log("Init recibido para siteId:", event.data.siteId);
         initChat(event.data.siteId); // 👈 Llamamos a tu función
     }
 });
@@ -466,13 +470,12 @@ async function sendMessage() {
 
     // Caso 1: texto plano (lo de siempre)
     if (data.reply.fields) {
-       reply = structJsonToJs(data.reply.fields);
+       reply = data.reply.fields;
        // Simular demora
        await new Promise(resolve => setTimeout(resolve, 1000));
     }
     // Caso 2: payload estructurado (contacto)
     else {
-        console.log(data);
         reply = data.reply;
         // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
         const words = reply.split(" ").length;

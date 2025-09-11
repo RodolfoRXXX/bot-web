@@ -40,7 +40,7 @@ function addBackToMenuButton(opciones) {
 
     const backButton = document.createElement("button");
     backButton.classList.add("option-button");
-    backButton.textContent = "🔙 Volver al menú de opciones";
+    backButton.textContent = "🔙 Menú de opciones";
 
     backButton.addEventListener("click", () => {
         // mostrar nuevamente las opciones
@@ -172,14 +172,10 @@ function formatBotReply(reply) {
         if (window.botConfig?.respuestas?.opciones) {
             addBackToMenuButton(...window.botConfig.respuestas.opciones);
         }
-    }, 300);
+    }, 800);
 
     return contentWrapper;
 }
-
-
-
-
 
 // 🔹 Función auxiliar para no repetir código
 function appendBubbleWithLinks(wrapper, text) {
@@ -411,9 +407,11 @@ function addMessage(sender, text, isTemporary = false) {
     if (sender === "user") {
         // Usuario: texto plano (seguro)
         bubble.textContent = text;
+        bubble.classList.add("user-bubble");
     } else {
         // Bot: permitir HTML (emoji, íconos, etc)
         bubble.innerHTML = text;
+        bubble.classList.add("bot-bubble");
         profilePic.classList.add("profile-pic");
         messageDiv.appendChild(profilePic);
     }
@@ -427,6 +425,11 @@ function addMessage(sender, text, isTemporary = false) {
     // Armar mensaje
     messageDiv.appendChild(bubble);
     chat.appendChild(messageDiv);
+
+    // animación typing simulada
+    if (sender === "bot") {
+        bubble.style.animationName = "slideUp"; // global
+    }
 
     // Scrollear hasta abajo
     chat.scrollTop = chat.scrollHeight;

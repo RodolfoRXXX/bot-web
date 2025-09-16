@@ -19,6 +19,20 @@ const domainMap = {
     "pinterest.com": "Pinterest"
 };
 
+// Mapeo de dominios → iconos
+const domainIcons = {
+    "facebook.com": "https://cdn-icons-png.flaticon.com/512/733/733547.png",
+    "instagram.com": "https://cdn-icons-png.flaticon.com/512/2111/2111463.png",
+    "twitter.com": "https://cdn-icons-png.flaticon.com/512/733/733579.png",
+    "x.com": "https://cdn-icons-png.flaticon.com/512/5968/5968830.png",
+    "wa.me": "https://cdn-icons-png.flaticon.com/512/733/733585.png",
+    "web.whatsapp.com": "https://cdn-icons-png.flaticon.com/512/733/733585.png",
+    "t.me": "https://cdn-icons-png.flaticon.com/512/2111/2111646.png",
+    "youtube.com": "https://cdn-icons-png.flaticon.com/512/1384/1384060.png",
+    "linkedin.com": "https://cdn-icons-png.flaticon.com/512/3536/3536505.png",
+    "pinterest.com": "https://cdn-icons-png.flaticon.com/512/145/145808.png"
+};
+
 // Sanitizer
 function sanitizeImageUrl(url) {
     try {
@@ -121,25 +135,42 @@ function formatBotReply(reply) {
                     const link = document.createElement("a");
                     const button = document.createElement("button");
 
+                    // 📧 Emails
                     if (str.includes?.("@")) {
                         link.href = `mailto:${str}`;
                         button.textContent = `✉️ ${str}`;
                     }
+                    // 📞 Teléfonos
                     else if (/^[\d\-\+\s]+$/.test(str)) {
                         link.href = `tel:${str}`;
                         button.textContent = `📞 ${str}`;
                     }
-                    else if (str.startsWith("http")) {
-                        const hostname = new URL(str).hostname.replace("www.", "");
-                        const label = domainMap[hostname] || hostname;
-                        link.href = str;
+                    // 🌐 Links
+                    else if (str.startsWith("http") || str.includes("|")) {
+                        let url = str;
+                        let label;
+
+                        // 👉 Caso personalizado: "Título|URL"
+                        if (str.includes("|")) {
+                            const parts = str.split("|");
+                            label = parts[0].trim();
+                            url = parts[1].trim();
+                        } else {
+                            const hostname = new URL(str).hostname.replace("www.", "");
+                            label = domainMap[hostname] || hostname;
+                        }
+
+                        link.href = url;
                         link.target = "_blank";
                         button.textContent = `🌐 ${label}`;
                     }
+
+                    // Texto plano
                     else {
                         link.href = "#";
                         button.textContent = str;
                     }
+
                     link.appendChild(button);
                     buttonsContainer.appendChild(link);
                 });
@@ -148,21 +179,41 @@ function formatBotReply(reply) {
         }
 
         // 🔹 Caso 2: Pregunta/Respuesta (FAQ)
-        // Si no es listValue, pero sí pares clave:valor
         const keys = Object.keys(reply);
         if (keys.length > 0 && keys.every(k => reply[k]?.kind === "stringValue")) {
             keys.forEach(key => {
                 const pregunta = key;
                 const respuesta = reply[key].stringValue;
 
-                const bubble = document.createElement("div");
-                bubble.classList.add("bubble");
-                bubble.innerHTML = `
-                    <strong>${pregunta}</strong><br>
-                    ${respuesta}
-                    <div class="time">${getTime()}</div>
+                // contenedor de cada FAQ
+                const faqItem = document.createElement("div");
+                faqItem.classList.add("faq-item");
+
+                // pregunta con botón
+                const questionDiv = document.createElement("div");
+                questionDiv.classList.add("faq-question");
+                questionDiv.innerHTML = `
+                    <span><strong>${pregunta}</strong></span>
+                    <button class="faq-toggle">▼</button>
                 `;
-                contentWrapper.appendChild(bubble);
+
+                // respuesta (oculta por defecto)
+                const answerDiv = document.createElement("div");
+                answerDiv.classList.add("faq-answer");
+                answerDiv.innerHTML = `
+                    <p>${respuesta}</p>
+                `;
+
+                // toggle click
+                questionDiv.addEventListener("click", () => {
+                    answerDiv.classList.toggle("open");
+                    const btn = questionDiv.querySelector(".faq-toggle");
+                    btn.classList.toggle("rotate");
+                });
+
+                faqItem.appendChild(questionDiv);
+                faqItem.appendChild(answerDiv);
+                contentWrapper.appendChild(faqItem);
             });
         }
     }
@@ -179,32 +230,43 @@ function formatBotReply(reply) {
 
 // 🔹 Función auxiliar para no repetir código
 function appendBubbleWithLinks(wrapper, text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Regex captura cualquier URL, incluso dentro de "Título|URL"
+    const urlRegex = /(?:\S+\|\s*)?(https?:\/\/[^\s]+)/g;
     const urls = text.match(urlRegex);
 
     // Texto sin links
-    let formattedText = text;
-    if (urls && urls.length > 0) {
-        formattedText = text.replace(urlRegex, "").trim();
-    }
+    let formattedText = text.replace(/(\S+\|\s*)?(https?:\/\/[^\s]+)/g, "").trim();
 
-    // Burbuja con texto
-    const bubble = document.createElement("div");
-    bubble.classList.add("bubble");
-    bubble.innerHTML = `
-        ${formattedText}
-        <div class="time">${getTime()}</div>
-    `;
-    wrapper.appendChild(bubble);
+    // Burbuja con texto (si queda algo)
+    if (formattedText) {
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+        bubble.innerHTML = `
+            ${formattedText}
+            <div class="time">${getTime()}</div>
+        `;
+        wrapper.appendChild(bubble);
+    }
 
     // Si había links, generar botones
     if (urls && urls.length > 0) {
         const buttonsContainer = document.createElement("div");
         buttonsContainer.classList.add("link-buttons");
 
-        urls.forEach(url => {
-            const hostname = new URL(url).hostname.replace("www.", "");
-            const label = domainMap[hostname] || hostname;
+        urls.forEach(item => {
+            let label, url;
+
+            // 👉 Caso personalizado "Título|URL"
+            if (item.includes("|")) {
+                const parts = item.split("|");
+                // 👉 Remueve [ ] si están presentes
+                label = parts[0].replace(/^\[|\]$/g, "").trim();
+                url = parts[1].trim();
+            } else {
+                url = item.trim();
+                const hostname = new URL(url).hostname.replace("www.", "");
+                label = domainMap[hostname] || hostname;
+            }
 
             const link = document.createElement("a");
             link.href = url;

@@ -73,34 +73,37 @@ function addBackToMenuButton(opciones) {
 function showOptionButtons(opciones) {
     const chat = document.getElementById("chat");
 
+    // 🟢 Antes de mostrar los botones, traer saludo de la base (si existe)
+    if (window.botConfig?.respuestas?.saludo) {
+        addMessage("bot", window.botConfig.respuestas.saludo);
+    } else {
+        addMessage("bot", "¿Qué puedo hacer por vos?");
+    }
+
     // contenedor de botones
-    const buttonsContainer = document.createElement("div");
-    buttonsContainer.classList.add("link-buttons");
+    setTimeout(() => {
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.classList.add("link-buttons");
 
-    // recorrer opciones (salteamos "saludo")
-    Object.entries(opciones).forEach(([label, intent]) => {
-        if (label.toLowerCase() === "saludo") return;
+        Object.entries(opciones).forEach(([label, intent]) => {
+            if (label.toLowerCase() === "saludo") return;
 
-        const button = document.createElement("button");
-        button.classList.add("option-button");
-        button.textContent = label;
+            const button = document.createElement("button");
+            button.classList.add("option-button");
+            button.textContent = label;
 
-        // Al hacer clic → enviar mensaje como si fuera usuario
-        button.addEventListener("click", () => {
-            addMessage("user", label);
+            button.addEventListener("click", () => {
+                addMessage("user", label);
+                buttonsContainer.remove();
+                sendIntent(intent);
+            });
 
-            // eliminar botones
-            buttonsContainer.remove();
-
-            // enviar el intent
-            sendIntent(intent);
+            buttonsContainer.appendChild(button);
         });
 
-        buttonsContainer.appendChild(button);
-    });
-
-    chat.appendChild(buttonsContainer);
-    chat.scrollTop = chat.scrollHeight;
+        chat.appendChild(buttonsContainer);
+        chat.scrollTop = chat.scrollHeight;
+    }, 600); // medio segundo de espera para mostrar menú
 }
 
 // Mapea las url en botones clickeables
@@ -145,7 +148,7 @@ function formatBotReply(reply) {
                         link.href = `tel:${str}`;
                         button.textContent = `📞 ${str}`;
                     }
-                    // 🌐 Links
+                    // 🔗 Links
                     else if (str.startsWith("http") || str.includes("|")) {
                         let url = str;
                         let label;
@@ -162,7 +165,7 @@ function formatBotReply(reply) {
 
                         link.href = url;
                         link.target = "_blank";
-                        button.textContent = `🌐 ${label}`;
+                        button.textContent = `🔗 ${label}`;
                     }
 
                     // Texto plano
@@ -383,16 +386,16 @@ async function initChat(siteId) {
 
             /* 🎨 Colores dinámicos */
             #chatHeader {
-                background-color: ${botConfig.config?.color?.encabezado || "#075e54"} !important;
+                background-color: ${botConfig.config?.color?.encabezado || "#aeaeae"} !important;
                 color: white !important;
             }
 
             body {
-                background-color: ${botConfig.config?.color?.fondo || "#ffffff"} !important;
+                background-color: ${botConfig.config?.color?.fondo || "#ece5dd"} !important;
             }
 
             #chat-send {
-                background-color: ${botConfig.config?.color?.boton || "#25d366"} !important;
+                background-color: ${botConfig.config?.color?.boton || "#aeaeae"} !important;
                 color: white !important;
                 border: none !important;
                 border-radius: 8px !important;
@@ -400,17 +403,7 @@ async function initChat(siteId) {
                 box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
             }
 
-            .option-button {
-                background-color: white !important;
-                color: ${botConfig.config?.color?.encabezado || "#25d366"} !important;
-                border: ${botConfig.config?.color?.encabezado || "#25d366"} !important;
-                border-radius: 8px !important;
-                padding: 6px 12px !important;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
-            }
-
-            #chat-send:hover, 
-            .option-button:hover {
+            #chat-send:hover {
                 transform: scale(1.05);
             }
         `;
@@ -429,13 +422,12 @@ async function initChat(siteId) {
         // ✅ Bot activo → saludo inicial
         addMessage("bot", botConfig.respuestas?.saludoInicial || "👋 Hola! Soy tu asistente virtual.");
 
-        // ✅ Bot activo → saludo inicial + segundo saludos + opciones
-        addMessage("bot", botConfig.respuestas?.saludo || "Qué puedo hacer por vos?");
-
         // Mostrar botones con opciones
-        if (botConfig.respuestas?.opciones) {
-            showOptionButtons(...botConfig.respuestas?.opciones);
-        }
+        setTimeout(() => {
+            if (botConfig.respuestas?.opciones) {
+                showOptionButtons(...botConfig.respuestas?.opciones);
+            }
+        }, 600);
     
         // Activamos control de inactividad
         resetInactivityTimer();

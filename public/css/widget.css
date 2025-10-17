@@ -12,7 +12,7 @@ body {
 #chatHeader {
     display: flex;
     align-items: center;
-    background: #075e54;
+    background: #aeaeae;
     color: white;
     padding: 15px;
     font-weight: bold;
@@ -46,12 +46,12 @@ body {
     background: transparent;
     border: none;
     color: white;
-    font-size: 18px;
+    font-size: 13px;
     cursor: pointer;
 }
 
 #clear-chat-btn:hover {
-    color: #25d366;
+    color: #ece5dd;
 }
 
 #chat {
@@ -141,7 +141,7 @@ input {
     margin-left: 5px;
     border: none;
     border-radius: 50%;
-    background: #25d366;
+    background: #ece5dd;
     color: white;
     cursor: pointer;
 }
@@ -209,27 +209,25 @@ input {
 
 .link-buttons a button, .option-button {
     padding: 10px 18px;
-    border: 2px solid #075e54;
-    border-radius: 8px;
+    border: 1px solid #898989;
+    border-radius: 6px;
     background-color: #ffffff; /* blanco, si quieres transparente usa "transparent" */
-    color: #075e54;
+    color: #5c5c5c;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.08);
 }
 
 /* Hover */
 .link-buttons a button:hover, .option-button:hover {
-    background-color: #075e54;
-    color: #ffffff;
-    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
+    background-color: #fefefe;
+    transform: translateY(-1px);
 }
 
 /* Active (clic presionado): más plano */
 .link-buttons a button:active, .option-button:active {
-    background-color: #064c45;
+    background-color: #ece5dd;
     color: #ffffff;
     transform: translateY(0);
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);

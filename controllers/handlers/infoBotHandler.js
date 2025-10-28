@@ -59,5 +59,28 @@ module.exports = function(botConfig) {
     agent.add(botConfig.respuestas?.despedida || "¡Hasta luego!");
   });
 
+  intentMap.set("Default_Fallback_Intent", (agent) => {
+      const replyPayload = {
+        reply: {
+          fields: {
+            texto: { stringValue: "😕 No entendí lo que quisiste decir. ¿Querés enviarnos un mensaje?", kind: "stringValue" },
+            medios: {
+              listValue: {
+                values: [
+                  { stringValue: "Enviar mensaje al sitio|contact", kind: "stringValue" }
+                ]
+              },
+              kind: "listValue"
+            }
+          }
+        }
+      };
+
+      // Enviamos como payload para que llegue estructurado y no como texto plano
+      agent.add(
+        new Payload(agent.UNSPECIFIED, replyPayload, { sendAsMessage: true })
+      );
+  });
+
   return intentMap;
 };

@@ -111,6 +111,9 @@ function formatBotReply(reply) {
     const contentWrapper = document.createElement("div");
     contentWrapper.classList.add("bubble-and-buttons");
 
+    reply = deepExtractFields(reply);
+        console.log("🧩 reply final desempaquetado:", JSON.stringify(reply, null, 2));
+
     // 🔹 Caso 3: Respuesta simple (string plano)
     if (typeof reply === "string") {
         appendBubbleWithLinks(contentWrapper, reply);
@@ -308,45 +311,47 @@ async function sendIntent(message) {
     });
 
     const data = await res.json();
-
     let reply;
 
-    // Caso 1: texto plano (lo de siempre)
-    if (data.reply.fields) {
-       reply = data.reply.fields;
-       // Simular demora
-       await new Promise(resolve => setTimeout(resolve, 1000));
+    // 👇 Detectar estructura especial de fallback
+    if (data.reply?.type === "fallback") {
+        removeTypingBubble(typingId);
+        showFallbackMessage(); // ya la tenés definida
+        return;
     }
-    // Caso 2: payload estructurado (contacto)
+
+    // Caso 1: respuesta estructurada de Dialogflow
+    if (data.reply.fields) {
+        reply = data.reply.fields;
+        // Simular demora
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    } 
+    // Caso 2: texto plano
     else {
         reply = data.reply;
-        // Calcular tiempo de espera: mínimo 1s, máximo 3.5s
         const words = reply.split(" ").length;
         let delay = Math.min(Math.max(words * 120, 1000), 3500);
-
-       // Esperar antes de mostrar la respuesta
-       await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise(resolve => setTimeout(resolve, delay));
     }
 
-    // Reemplazar burbuja
+    // Reemplazar burbuja "escribiendo..." con la respuesta
     const typingBubble = document.getElementById(typingId);
-
     if (typingBubble) {
-        const messageDiv = typingBubble;
+        typingBubble.querySelectorAll(".bubble, .bubble-and-buttons").forEach(el => el.remove());
 
-        // limpiar solo la burbuja, no el contenedor completo
-        messageDiv.querySelectorAll(".bubble, .bubble-and-buttons").forEach(el => el.remove());
-
-        // volver a agregar el profilePic si no existe
-        let profilePic = messageDiv.querySelector(".profile-pic");
+        let profilePic = typingBubble.querySelector(".profile-pic");
         if (!profilePic) {
             profilePic = document.createElement("div");
             profilePic.classList.add("profile-pic");
-            messageDiv.insertBefore(profilePic, messageDiv.firstChild);
+            typingBubble.insertBefore(profilePic, typingBubble.firstChild);
         }
 
-        // ahora insertar el nuevo contenido (texto + links formateados)
-        messageDiv.appendChild(formatBotReply(reply));
+        typingBubble.appendChild(formatBotReply(reply));
+    }
+
+    // 👇 Si el texto del bot sugiere que no entendió
+    if (typeof reply === "string" && /no (te|lo|la)? (entiendo|comprendo)/i.test(reply)) {
+        setTimeout(showFallbackMessage, 1000);
     }
 }
 
@@ -525,11 +530,12 @@ async function sendMessage() {
     
     let reply;
 
+    //console.log(data)
+
     // Caso 1: texto plano (lo de siempre)
-    if (data.reply.fields) {
-       reply = data.reply.fields;
-       // Simular demora
-       await new Promise(resolve => setTimeout(resolve, 1000));
+    if (data.reply?.fields || data.reply?.reply?.fields) {
+        reply = data.reply;
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
     // Caso 2: payload estructurado (contacto)
     else {
@@ -599,4 +605,169 @@ function resetChat() {
             initChat(siteId);
         }
     }, 2000);
+}
+
+function showFallbackMessage() {
+    addMessage("bot", "😕 No entendí lo que quisiste decir. ¿Querés dejar un mensaje para que te contactemos?");
+
+    const buttons = document.createElement("div");
+    buttons.classList.add("link-buttons");
+
+    const yesBtn = document.createElement("button");
+    yesBtn.textContent = "📨 Enviar mensaje";
+    yesBtn.onclick = () => {
+        buttons.remove();
+        startContactFlow();
+    };
+
+    const noBtn = document.createElement("button");
+    noBtn.textContent = "❌ No, gracias";
+    noBtn.onclick = () => {
+        buttons.remove();
+        addMessage("bot", "De acuerdo 😊 Si querés, podés volver al menú principal.");
+        setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 800);
+    };
+
+    buttons.appendChild(yesBtn);
+    buttons.appendChild(noBtn);
+
+    const chat = document.getElementById("chat");
+    chat.appendChild(buttons);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function startContactFlow() {
+    const userData = { nombre: "", email: "", mensaje: "" };
+    let step = 0;
+
+    addMessage("bot", "Perfecto 👌 Empecemos con tu nombre:");
+
+    // Escuchar cada mensaje de usuario
+    window.addEventListener("message", async function handler(event) {
+        if (event.data?.action !== "userMessage") return;
+        const text = event.data.text?.trim();
+        if (!text) return;
+
+        if (step === 0) {
+            userData.nombre = text;
+            addMessage("bot", `Gracias, ${userData.nombre}. ¿Cuál es tu email?`);
+            step++;
+        } else if (step === 1) {
+            userData.email = text;
+            addMessage("bot", "¿Qué mensaje te gustaría enviarnos?");
+            step++;
+        } else if (step === 2) {
+            userData.mensaje = text;
+            window.removeEventListener("message", handler);
+
+            addMessage("bot", "📨 Enviando tu mensaje...");
+
+            try {
+                const res = await fetch("/api/contact", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(userData)
+                });
+
+                if (res.ok) {
+                    addMessage("bot", "✅ ¡Gracias! Tu mensaje fue enviado correctamente. Te responderemos pronto.");
+                } else {
+                    addMessage("bot", "⚠️ Hubo un error al enviar tu mensaje. Podés intentar más tarde.");
+                }
+            } catch (err) {
+                addMessage("bot", "⚠️ Hubo un error al enviar tu mensaje. Podés intentar más tarde.");
+            }
+
+            // Volver al menú
+            setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 1000);
+        }
+    });
+}
+
+function removeTypingBubble(id) {
+    const typing = document.getElementById(id);
+    if (typing) typing.remove();
+}
+
+function deepExtractFields(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+
+    // 🔹 1️⃣ Desempaquetar niveles innecesarios (loop hasta llegar al nivel útil)
+    let lastObj = null;
+    let safety = 0;
+    while (safety < 10) { // evita loop infinito
+        safety++;
+
+        if (
+            obj?.fields?.null?.structValue?.fields?.reply?.structValue?.fields?.fields?.structValue?.fields
+        ) {
+            obj = obj.fields.null.structValue.fields.reply.structValue.fields.fields.structValue.fields;
+        } else if (obj?.fields?.reply?.structValue?.fields?.fields?.structValue?.fields) {
+            obj = obj.fields.reply.structValue.fields.fields.structValue.fields;
+        } else if (obj?.reply?.fields?.reply?.structValue?.fields) {
+            obj = obj.reply.fields.reply.structValue.fields;
+        } else if (obj?.reply?.fields) {
+            obj = obj.reply.fields;
+        } else if (obj?.fields?.reply?.structValue?.fields) {
+            obj = obj.fields.reply.structValue.fields;
+        } else if (obj?.fields) {
+            obj = obj.fields;
+        } else {
+            break;
+        }
+
+        // si no cambia más, cortamos
+        if (obj === lastObj) break;
+        lastObj = obj;
+    }
+
+    // 🔹 2️⃣ Si hay structValue.fields dentro de los valores, aplanar
+    for (const key in obj) {
+        const val = obj[key];
+        if (val?.structValue?.fields) {
+            obj[key] = val.structValue.fields;
+        }
+    }
+
+    // 🔹 3️⃣ Simplificar stringValue anidados y listas complejas
+    for (const key in obj) {
+        const val = obj[key];
+
+        // texto.stringValue.stringValue → texto.stringValue
+        if (val?.stringValue?.stringValue) {
+            obj[key].stringValue = val.stringValue.stringValue;
+        }
+
+        // medios.listValue.structValue.fields.values.listValue.values → medios.listValue.values
+        else if (val?.listValue?.structValue?.fields?.values?.listValue?.values) {
+            obj[key].listValue = val.listValue.structValue.fields.values.listValue;
+        }
+
+        // Simplificar arrays de valores
+        if (val?.listValue?.values) {
+            obj[key].listValue.values = val.listValue.values.map(v => {
+                if (v?.structValue?.fields?.stringValue?.stringValue) {
+                    return { stringValue: v.structValue.fields.stringValue.stringValue };
+                } else if (v?.stringValue) {
+                    return { stringValue: v.stringValue };
+                }
+                return v;
+            });
+        }
+    }
+
+    // 🔹 4️⃣ Normalizar: agregar kind al final de cada bloque
+    const normalized = {};
+    for (const key in obj) {
+        const val = obj[key];
+        if (val?.stringValue) {
+            normalized[key] = { stringValue: val.stringValue, kind: "stringValue" };
+        } else if (val?.listValue?.values) {
+            normalized[key] = { listValue: val.listValue, kind: "listValue" };
+        } else {
+            normalized[key] = val;
+        }
+    }
+
+    return normalized;
 }

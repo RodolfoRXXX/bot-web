@@ -291,6 +291,8 @@ function appendBubbleWithLinks(wrapper, text) {
 
 // Función que simula un intent
 async function sendIntent(message) {
+    removeAllOptionButtons(); // 👈 limpia los botones de opciones previos
+
     resetInactivityTimer();
 
     // Animación "Escribiendo..."
@@ -504,6 +506,8 @@ async function sendMessage() {
     const message = input.value.trim();
     if (!message) return;
 
+    removeAllOptionButtons(); // 👈 limpia los botones anteriores
+
     addMessage("user", message);
     input.value = "";
 
@@ -608,6 +612,8 @@ function resetChat() {
 }
 
 function showFallbackMessage() {
+    removeAllOptionButtons(); // 👈 limpia antes de mostrar “Enviar mensaje al sitio”
+
     addMessage("bot", "😕 No entendí lo que quisiste decir. ¿Querés dejar un mensaje para que te contactemos?");
 
     const buttons = document.createElement("div");
@@ -770,4 +776,8 @@ function deepExtractFields(obj) {
     }
 
     return normalized;
+}
+
+function removeAllOptionButtons() {
+    document.querySelectorAll(".link-buttons").forEach(el => el.remove());
 }

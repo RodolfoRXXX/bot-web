@@ -240,6 +240,48 @@ input {
   vertical-align: middle;
 }
 
+.contact-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 8px;
+}
+
+.contact-buttons button {
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.contact-buttons .cancel-button {
+    background-color: #e74c3c;
+    color: #fff;
+}
+
+.contact-buttons .send-button {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+.contact-buttons button:hover {
+    transform: scale(1.05);
+    opacity: 0.9;
+}
+
+.confirm-box {
+    background: #f4f4f4;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
 /* Animación puntos "escribiendo..." */
 .typing-dots {
     display: inline-block;

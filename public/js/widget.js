@@ -5,6 +5,12 @@ const siteId = urlParams.get("siteId") || "defaultBot";
 let inactivityTimer; // ⏱️ para controlar inactividad
 let botActivo = true; // valor por defecto
 
+let contactFlowActive = false;
+let contactData = { nombre: "", telefono: "", mensaje: "" };
+let contactStep = 0;
+
+let lastBotOptions = [];
+
 // Mapeo de dominios → nombres de redes
 const domainMap = {
     "facebook.com": "Facebook",
@@ -156,7 +162,7 @@ function formatBotReply(reply) {
                         let url = str;
                         let label;
 
-                        // 👉 Caso personalizado: "Título|URL"
+                        // 👉 Caso personalizado: "Título|acción o URL"
                         if (str.includes("|")) {
                             const parts = str.split("|");
                             label = parts[0].trim();
@@ -166,6 +172,18 @@ function formatBotReply(reply) {
                             label = domainMap[hostname] || hostname;
                         }
 
+                        // ⚙️ Acción especial: "contact"
+                        if (url.toLowerCase() === "message") {
+                            // No abrimos un link, llamamos al flujo del mensaje
+                            const btn = document.createElement("button");
+                            btn.textContent = `📨 ${label}`;
+                            btn.classList.add("option-button");
+                            btn.onclick = () => startContactFlow();
+                            buttonsContainer.appendChild(btn);
+                            return; // salir del forEach
+                        }
+
+                        // En cualquier otro caso: link normal
                         link.href = url;
                         link.target = "_blank";
                         button.textContent = `🔗 ${label}`;
@@ -513,6 +531,12 @@ async function sendMessage() {
 
     resetInactivityTimer(); // 👈 reiniciar temporizador de inactividad
 
+    // 🟡 Si está activo el flujo de contacto, no enviamos a Dialogflow
+    if (contactFlowActive) {
+        handleContactFlow(message);
+        return; // 🚫 salimos antes de llamar al backend
+    }
+
     // Animación "Escribiendo..."
     const typingId = addMessage("bot", `
         <div class="typing-dots">
@@ -611,6 +635,8 @@ function resetChat() {
     }, 2000);
 }
 
+// -- Fallback
+
 function showFallbackMessage() {
     removeAllOptionButtons(); // 👈 limpia antes de mostrar “Enviar mensaje al sitio”
 
@@ -642,53 +668,157 @@ function showFallbackMessage() {
     chat.scrollTop = chat.scrollHeight;
 }
 
+// -- Mensajes directos
+// 📨 --- Contact Flow mejorado ---
 function startContactFlow() {
-    const userData = { nombre: "", email: "", mensaje: "" };
-    let step = 0;
+    contactFlowActive = true;
+    contactData = { nombre: "", telefono: "", mensaje: "" };
+    contactStep = 0;
 
-    addMessage("bot", "Perfecto 👌 Empecemos con tu nombre:");
+    removeAllOptionButtons();
 
-    // Escuchar cada mensaje de usuario
-    window.addEventListener("message", async function handler(event) {
-        if (event.data?.action !== "userMessage") return;
-        const text = event.data.text?.trim();
-        if (!text) return;
-
-        if (step === 0) {
-            userData.nombre = text;
-            addMessage("bot", `Gracias, ${userData.nombre}. ¿Cuál es tu email?`);
-            step++;
-        } else if (step === 1) {
-            userData.email = text;
-            addMessage("bot", "¿Qué mensaje te gustaría enviarnos?");
-            step++;
-        } else if (step === 2) {
-            userData.mensaje = text;
-            window.removeEventListener("message", handler);
-
-            addMessage("bot", "📨 Enviando tu mensaje...");
-
-            try {
-                const res = await fetch("/api/contact", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(userData)
-                });
-
-                if (res.ok) {
-                    addMessage("bot", "✅ ¡Gracias! Tu mensaje fue enviado correctamente. Te responderemos pronto.");
-                } else {
-                    addMessage("bot", "⚠️ Hubo un error al enviar tu mensaje. Podés intentar más tarde.");
-                }
-            } catch (err) {
-                addMessage("bot", "⚠️ Hubo un error al enviar tu mensaje. Podés intentar más tarde.");
-            }
-
-            // Volver al menú
-            setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 1000);
-        }
-    });
+    addMessage("bot", "📩 Perfecto, vamos a enviar un mensaje al sitio. ¿Cuál es tu nombre?");
+    showCancelContactButton();
 }
+
+// 🔹 Mostrar botones de cancelar / enviar (dependiendo del paso)
+function showCancelContactButton() {
+    removeAllOptionButtons();
+
+    const chat = document.getElementById("chat");
+    const buttons = document.createElement("div");
+    buttons.classList.add("contact-buttons");
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.classList.add("cancel-button");
+    cancelBtn.textContent = "❌ Cancelar mensaje";
+    cancelBtn.onclick = cancelContactFlow;
+
+    buttons.appendChild(cancelBtn);
+    chat.appendChild(buttons);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+// 🔹 Manejar los pasos del flujo (nombre → teléfono → mensaje)
+function handleContactFlow(message) {
+    const input = document.getElementById("userInput");
+
+    switch (contactStep) {
+        case 0:
+            contactData.nombre = message;
+            addMessage("bot", `Gracias, ${contactData.nombre} 😊. ¿Podrías dejarme tu teléfono de contacto?`);
+            contactStep = 1;
+            showCancelContactButton();
+            break;
+
+        case 1:
+            contactData.telefono = message;
+            addMessage("bot", "Perfecto. Ahora escribí el mensaje que querés enviar 📝");
+            contactStep = 2;
+            showCancelContactButton();
+            break;
+
+        case 2:
+            contactData.mensaje = message;
+
+            removeAllOptionButtons();
+            addMessage("bot", "📨 Confirmá si querés enviar el siguiente mensaje:");
+            addMessage("bot", `
+                <div class="confirm-box">
+                    <p><strong>Nombre:</strong> ${contactData.nombre}</p>
+                    <p><strong>Teléfono:</strong> ${contactData.telefono}</p>
+                    <p><strong>Mensaje:</strong> ${contactData.mensaje}</p>
+                </div>
+            `);
+
+            const chat = document.getElementById("chat");
+            const confirmBtns = document.createElement("div");
+            confirmBtns.classList.add("contact-buttons");
+
+            const sendBtn = document.createElement("button");
+            sendBtn.classList.add("send-button");
+            sendBtn.textContent = "✅ Enviar";
+            sendBtn.onclick = async () => {
+                addMessage("bot", "📤 Enviando mensaje...");
+
+                // Aquí podrías enviar el mensaje al servidor
+                // Ejemplo:
+                // await fetch("/api/sendContact", { method: "POST", body: JSON.stringify(contactData) });
+
+                setTimeout(() => {
+                    addMessage("bot", "✅ ¡Mensaje enviado correctamente! Pronto nos pondremos en contacto contigo.");
+                    contactFlowActive = false;
+                    confirmBtns.remove();
+                    setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 800);
+                }, 1000);
+            };
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.classList.add("cancel-button");
+            cancelBtn.textContent = "❌ Cancelar";
+            cancelBtn.onclick = cancelContactFlow;
+
+            confirmBtns.appendChild(sendBtn);
+            confirmBtns.appendChild(cancelBtn);
+            chat.appendChild(confirmBtns);
+            chat.scrollTop = chat.scrollHeight;
+            break;
+    }
+
+    input.value = "";
+}
+
+// 🔹 Cancelar flujo de contacto
+function cancelContactFlow() {
+    contactFlowActive = false;
+    contactData = { nombre: "", telefono: "", mensaje: "" };
+    contactStep = 0;
+    removeAllOptionButtons();
+
+    addMessage("bot", "❌ Se canceló el envío del mensaje.");
+    setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 1000);
+}
+
+// 🔹 Interceptar mensajes del usuario cuando está activo el flujo de contacto
+const oldSendMessage = sendMessage;
+sendMessage = async function() {
+    const input = document.getElementById("userInput");
+    const message = input.value.trim();
+    if (!message) return;
+
+    addMessage("user", message);
+
+    if (contactFlowActive) {
+        handleContactFlow(message);
+        return; // 👈 Evitamos enviarlo al backend
+    }
+
+    await oldSendMessage(); // 👈 Flujo normal si no está en contacto
+};
+
+async function sendContactMessage() {
+    try {
+        const res = await fetch("/api/contact", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(contactData),
+        });
+
+        if (res.ok) {
+            addMessage("bot", "✅ ¡Mensaje enviado correctamente! Gracias por contactarnos.");
+        } else {
+            addMessage("bot", "⚠️ Hubo un problema al enviar el mensaje. Intentalo más tarde.");
+        }
+    } catch (err) {
+        console.error(err);
+        addMessage("bot", "❌ Error al enviar el mensaje. Revisá tu conexión.");
+    }
+
+    // Salimos del flujo
+    contactFlowActive = false;
+}
+
+// ----------------------------------
 
 function removeTypingBubble(id) {
     const typing = document.getElementById(id);

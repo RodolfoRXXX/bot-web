@@ -67,7 +67,7 @@ module.exports = function(botConfig) {
             medios: {
               listValue: {
                 values: [
-                  { stringValue: "Enviar mensaje al sitio|contact", kind: "stringValue" }
+                  { stringValue: "Enviar mensaje al sitio|message", kind: "stringValue" }
                 ]
               },
               kind: "listValue"

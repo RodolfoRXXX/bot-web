@@ -6,6 +6,8 @@ const { fulfillmentHandler } = require("../controllers/fulfillmentController");
 const db = require("../utils/firebase"); // <-- Asegurate de importar Firestore
 const { jsonToStructProto } = require("../utils/jsonToStruct");
 
+import nodemailer from "nodemailer";
+
 const router = express.Router();
 
 // Ruta widget

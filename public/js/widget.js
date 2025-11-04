@@ -337,15 +337,6 @@ async function sendIntent(message) {
     const data = await res.json();
     let reply;
 
-    console.log(data)
-
-    // 👇 Detectar estructura especial de fallback
-    if (data.reply?.type === "fallback") {
-        removeTypingBubble(typingId);
-        showFallbackMessage(); // ya la tenés definida
-        return;
-    }
-
     // Caso 1: respuesta estructurada de Dialogflow
     if (data.reply.fields) {
         reply = data.reply.fields;
@@ -373,11 +364,6 @@ async function sendIntent(message) {
         }
 
         typingBubble.appendChild(formatBotReply(reply));
-    }
-
-    // 👇 Si el texto del bot sugiere que no entendió
-    if (typeof reply === "string" && /no (te|lo|la)? (entiendo|comprendo)/i.test(reply)) {
-        setTimeout(showFallbackMessage, 1000);
     }
 }
 
@@ -644,39 +630,6 @@ function resetChat() {
             initChat(siteId);
         }
     }, 2000);
-}
-
-// -- Fallback
-
-function showFallbackMessage() {
-    removeAllOptionButtons(); // 👈 limpia antes de mostrar “Enviar mensaje al sitio”
-
-    addMessage("bot", "😕 No entendí lo que quisiste decir. ¿Querés dejar un mensaje para que te contactemos?");
-
-    const buttons = document.createElement("div");
-    buttons.classList.add("link-buttons");
-
-    const yesBtn = document.createElement("button");
-    yesBtn.textContent = "📨 Enviar mensaje";
-    yesBtn.onclick = () => {
-        buttons.remove();
-        startContactFlow();
-    };
-
-    const noBtn = document.createElement("button");
-    noBtn.textContent = "❌ No, gracias";
-    noBtn.onclick = () => {
-        buttons.remove();
-        addMessage("bot", "De acuerdo 😊 Si querés, podés volver al menú principal.");
-        setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 800);
-    };
-
-    buttons.appendChild(yesBtn);
-    buttons.appendChild(noBtn);
-
-    const chat = document.getElementById("chat");
-    chat.appendChild(buttons);
-    chat.scrollTop = chat.scrollHeight;
 }
 
 // -- Mensajes directos

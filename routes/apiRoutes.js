@@ -100,6 +100,40 @@ router.post("/api/chat", async (req, res) => {
   }
 });
 
+// Ruta para enviar mensaje interno
+router.post("/send-message", async (req, res) => {
+    const { name, email, phone, message, siteId } = req.body;
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: "gmail", // o smtp propio
+            auth: {
+                user: process.env.MAIL_USER,
+                pass: process.env.MAIL_PASS
+            }
+        });
+
+        await transporter.sendMail({
+            from: `"Chatbot ${siteId}" <${process.env.MAIL_USER}>`,
+            to: process.env.SITE_OWNER_EMAIL || "dueño@midominio.com",
+            subject: `Nuevo mensaje desde el chatbot (${siteId})`,
+            html: `
+                <h3>Nuevo mensaje recibido:</h3>
+                <p><strong>Nombre:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Teléfono:</strong> ${phone}</p>
+                <p><strong>Mensaje:</strong></p>
+                <p>${message}</p>
+            `
+        });
+
+        res.json({ ok: true, msg: "Mensaje enviado con éxito" });
+    } catch (err) {
+        console.error("Error enviando mensaje:", err);
+        res.status(500).json({ ok: false, msg: "Error al enviar mensaje" });
+    }
+});
+
 // Webhook
 router.post("/webhook", express.json(), fulfillmentHandler);
 

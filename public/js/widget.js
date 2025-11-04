@@ -86,6 +86,11 @@ function showOptionButtons(opciones) {
         addMessage("bot", "¿Qué puedo hacer por vos?");
     }
 
+    // 🧠 Guardar opciones actuales globalmente
+    if (opciones && typeof opciones === "object") {
+        window.lastBotOptions = opciones;
+    }
+
     // contenedor de botones
     setTimeout(() => {
         const buttonsContainer = document.createElement("div");
@@ -118,7 +123,6 @@ function formatBotReply(reply) {
     contentWrapper.classList.add("bubble-and-buttons");
 
     reply = deepExtractFields(reply);
-        console.log("🧩 reply final desempaquetado:", JSON.stringify(reply, null, 2));
 
     // 🔹 Caso 3: Respuesta simple (string plano)
     if (typeof reply === "string") {
@@ -333,6 +337,8 @@ async function sendIntent(message) {
     const data = await res.json();
     let reply;
 
+    console.log(data)
+
     // 👇 Detectar estructura especial de fallback
     if (data.reply?.type === "fallback") {
         removeTypingBubble(typingId);
@@ -389,6 +395,11 @@ async function initChat(siteId) {
         const botConfig = await res.json();
 
         window.botConfig = botConfig;
+
+        // 🧠 Guardar opciones iniciales globalmente
+        if (botConfig?.respuestas?.opciones) {
+            window.lastBotOptions = botConfig.respuestas.opciones;
+        }
 
         botActivo = botConfig.config?.activo === 1; // 👈 chequear campo "activo"
 
@@ -657,7 +668,7 @@ function showFallbackMessage() {
     noBtn.onclick = () => {
         buttons.remove();
         addMessage("bot", "De acuerdo 😊 Si querés, podés volver al menú principal.");
-        setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 800);
+        setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 800);
     };
 
     buttons.appendChild(yesBtn);
@@ -749,7 +760,7 @@ function handleContactFlow(message) {
                     addMessage("bot", "✅ ¡Mensaje enviado correctamente! Pronto nos pondremos en contacto contigo.");
                     contactFlowActive = false;
                     confirmBtns.remove();
-                    setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 800);
+                    setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 800);
                 }, 1000);
             };
 
@@ -776,7 +787,7 @@ function cancelContactFlow() {
     removeAllOptionButtons();
 
     addMessage("bot", "❌ Se canceló el envío del mensaje.");
-    setTimeout(() => showOptionButtons(window.botConfig.respuestas.opciones), 1000);
+    setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 1000);
 }
 
 // 🔹 Interceptar mensajes del usuario cuando está activo el flujo de contacto
@@ -786,9 +797,8 @@ sendMessage = async function() {
     const message = input.value.trim();
     if (!message) return;
 
-    addMessage("user", message);
-
     if (contactFlowActive) {
+        addMessage("user", message);
         handleContactFlow(message);
         return; // 👈 Evitamos enviarlo al backend
     }

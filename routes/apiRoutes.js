@@ -6,7 +6,7 @@ const { fulfillmentHandler } = require("../controllers/fulfillmentController");
 const db = require("../utils/firebase"); // <-- Asegurate de importar Firestore
 const { jsonToStructProto } = require("../utils/jsonToStruct");
 
-import nodemailer from "nodemailer";
+const nodemailer = require("nodemailer");
 
 const router = express.Router();
 
@@ -101,37 +101,49 @@ router.post("/api/chat", async (req, res) => {
 });
 
 // Ruta para enviar mensaje interno
-router.post("/send-message", async (req, res) => {
-    const { name, email, phone, message, siteId } = req.body;
+router.post("/api/send-message", async (req, res) => {
+  const { name, phone, message, siteId, ownerEmail } = req.body;
 
-    try {
-        const transporter = nodemailer.createTransport({
-            service: "gmail", // o smtp propio
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS
-            }
-        });
+  if (!ownerEmail) {
+    return res.status(400).json({ ok: false, msg: "Falta el email del dueño del sitio" });
+  }
 
-        await transporter.sendMail({
-            from: `"Chatbot ${siteId}" <${process.env.MAIL_USER}>`,
-            to: process.env.SITE_OWNER_EMAIL || "dueño@midominio.com",
-            subject: `Nuevo mensaje desde el chatbot (${siteId})`,
-            html: `
-                <h3>Nuevo mensaje recibido:</h3>
-                <p><strong>Nombre:</strong> ${name}</p>
-                <p><strong>Email:</strong> ${email}</p>
-                <p><strong>Teléfono:</strong> ${phone}</p>
-                <p><strong>Mensaje:</strong></p>
-                <p>${message}</p>
-            `
-        });
+  try {
+    // 📧 Configurar transporte
+    const transporter = nodemailer.createTransport({
+      service: "gmail", // o smtp.custom.com
+      auth: {
+        user: process.env.MAIL_USER, // tu cuenta remitente
+        pass: process.env.MAIL_PASS  // tu contraseña o app password
+      }
+    });
 
-        res.json({ ok: true, msg: "Mensaje enviado con éxito" });
-    } catch (err) {
-        console.error("Error enviando mensaje:", err);
-        res.status(500).json({ ok: false, msg: "Error al enviar mensaje" });
-    }
+    // 📨 Enviar el mensaje
+    await transporter.sendMail({
+      from: `"Chatbot ${siteId}" <${process.env.MAIL_USER}>`,
+      to: ownerEmail, // el dueño del sitio
+      subject: `💬 Nuevo mensaje desde el chatbot (${siteId})`,
+      html: `
+        <div style="font-family: sans-serif; background: #f9f9f9; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #333;">Nuevo mensaje recibido desde el chatbot</h2>
+          <p><strong>Nombre:</strong> ${name || "(no especificado)"}</p>
+          <p><strong>Teléfono:</strong> ${phone || "(no especificado)"}</p>
+          <p><strong>Mensaje:</strong></p>
+          <blockquote style="background:#fff; padding:10px 15px; border-left:4px solid #009688;">
+            ${message}
+          </blockquote>
+          <hr/>
+          <p style="font-size:12px;color:#666;">Chatbot: <strong>${siteId}</strong></p>
+        </div>
+      `
+    });
+
+    console.log(`✅ Mensaje enviado al dueño del sitio (${ownerEmail})`);
+    res.json({ ok: true, msg: "Mensaje enviado correctamente" });
+  } catch (err) {
+    console.error("❌ Error al enviar el mensaje:", err);
+    res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
+  }
 });
 
 // Webhook

@@ -4,6 +4,7 @@ const siteId = urlParams.get("siteId") || "defaultBot";
 
 let inactivityTimer; // ⏱️ para controlar inactividad
 let botActivo = true; // valor por defecto
+let emailDueno = "bamboo.nothuman@gmail.com"
 
 let contactFlowActive = false;
 let contactData = { nombre: "", telefono: "", mensaje: "" };
@@ -396,7 +397,6 @@ async function initChat(siteId) {
         // Configurar imagen del bot
         if (botConfig.config?.imagen) {
             document.getElementById("bot-avatar").src = sanitizeImageUrl(botConfig.config?.imagen);
-
         }
 
         // 👇 Perfíl dinámico
@@ -705,16 +705,30 @@ function handleContactFlow(message) {
             sendBtn.onclick = async () => {
                 addMessage("bot", "📤 Enviando mensaje...");
 
-                // Aquí podrías enviar el mensaje al servidor
-                // Ejemplo:
-                // await fetch("/api/sendContact", { method: "POST", body: JSON.stringify(contactData) });
-
-                setTimeout(() => {
-                    addMessage("bot", "✅ ¡Mensaje enviado correctamente! Pronto nos pondremos en contacto contigo.");
-                    contactFlowActive = false;
-                    confirmBtns.remove();
-                    setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 800);
-                }, 1000);
+                // Detalle para envío de mensaje
+                await fetch("/api/send-message", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: contactData.nombre,
+                        phone: contactData.telefono,
+                        message: contactData.mensaje,
+                        siteId,
+                        ownerEmail: window.botConfig?.config?.emailDueno || emailDueno
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.ok) {
+                    addMessage("bot", "✅ Tu mensaje fue enviado con éxito. ¡Gracias por contactarnos!");
+                    } else {
+                    addMessage("bot", "❌ Ocurrió un error al enviar el mensaje. Por favor, intentá más tarde.");
+                    }
+                })
+                .catch(err => {
+                    console.error("Error:", err);
+                    addMessage("bot", "⚠️ No se pudo enviar el mensaje. Revisá tu conexión.");
+                });
             };
 
             const cancelBtn = document.createElement("button");
@@ -728,7 +742,6 @@ function handleContactFlow(message) {
             chat.scrollTop = chat.scrollHeight;
             break;
     }
-
     input.value = "";
 }
 

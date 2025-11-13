@@ -729,7 +729,7 @@ function handleContactFlow(message) {
                             phone: contactData.telefono,
                             message: contactData.mensaje,
                             siteId,
-                            ownerEmail: window.botConfig?.config?.emailDueno || emailDueno
+                            ownerEmail: window.botConfig?.config?.email || emailDueno
                         })
                     });
 

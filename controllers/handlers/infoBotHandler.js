@@ -35,8 +35,6 @@ module.exports = function(botConfig) {
   intentMap.set("faq", (agent) => {
     const faq = botConfig?.respuestas?.faqe;
 
-    console.log(faq);
-
     if (faq) {
       agent.add(new Payload(agent.UNSPECIFIED, faq, {
         sendAsMessage: true,

@@ -555,8 +555,6 @@ async function sendMessage() {
     
     let reply;
 
-    //console.log(data)
-
     // Caso 1: texto plano (lo de siempre)
     if (data.reply?.fields || data.reply?.reply?.fields) {
         reply = data.reply;
@@ -634,6 +632,7 @@ function resetChat() {
 
 // -- Mensajes directos
 // 📨 --- Contact Flow mejorado ---
+
 function startContactFlow() {
     contactFlowActive = true;
     contactData = { nombre: "", telefono: "", mensaje: "" };
@@ -663,6 +662,20 @@ function showCancelContactButton() {
     chat.scrollTop = chat.scrollHeight;
 }
 
+// 🔹 Eliminar una burbuja específica
+function removeMessageBubble(messageId) {
+    const msg = document.getElementById(messageId);
+    if (msg) msg.remove();
+}
+
+// 🔹 Limpiar flujo completo
+function resetContactFlow() {
+    contactFlowActive = false;
+    contactData = { nombre: "", telefono: "", mensaje: "" };
+    contactStep = 0;
+    document.querySelectorAll(".contact-buttons").forEach(el => el.remove());
+}
+
 // 🔹 Manejar los pasos del flujo (nombre → teléfono → mensaje)
 function handleContactFlow(message) {
     const input = document.getElementById("userInput");
@@ -684,8 +697,8 @@ function handleContactFlow(message) {
 
         case 2:
             contactData.mensaje = message;
-
             removeAllOptionButtons();
+
             addMessage("bot", "📨 Confirmá si querés enviar el siguiente mensaje:");
             addMessage("bot", `
                 <div class="confirm-box">
@@ -703,32 +716,44 @@ function handleContactFlow(message) {
             sendBtn.classList.add("send-button");
             sendBtn.textContent = "✅ Enviar";
             sendBtn.onclick = async () => {
-                addMessage("bot", "📤 Enviando mensaje...");
+                confirmBtns.remove();
 
-                // Detalle para envío de mensaje
-                await fetch("/api/send-message", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name: contactData.nombre,
-                        phone: contactData.telefono,
-                        message: contactData.mensaje,
-                        siteId,
-                        ownerEmail: window.botConfig?.config?.emailDueno || emailDueno
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
+                const sendingId = addMessage("bot", "📤 Enviando mensaje...", true);
+
+                try {
+                    const res = await fetch("/api/send-message", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            name: contactData.nombre,
+                            phone: contactData.telefono,
+                            message: contactData.mensaje,
+                            siteId,
+                            ownerEmail: window.botConfig?.config?.emailDueno || emailDueno
+                        })
+                    });
+
+                    const data = await res.json();
+                    removeMessageBubble(sendingId); // 💥 ahora sí se borra
+
                     if (data.ok) {
-                    addMessage("bot", "✅ Tu mensaje fue enviado con éxito. ¡Gracias por contactarnos!");
+                        addMessage("bot", "✅ Tu mensaje fue enviado con éxito. ¡Gracias por contactarnos!");
                     } else {
-                    addMessage("bot", "❌ Ocurrió un error al enviar el mensaje. Por favor, intentá más tarde.");
+                        addMessage("bot", "❌ Ocurrió un error al enviar el mensaje. Por favor, intentá más tarde.");
                     }
-                })
-                .catch(err => {
+                } catch (err) {
                     console.error("Error:", err);
+                    removeMessageBubble(sendingId);
                     addMessage("bot", "⚠️ No se pudo enviar el mensaje. Revisá tu conexión.");
-                });
+                }
+
+                // 🔹 Limpieza total del flujo
+                resetContactFlow();
+
+                // Mostrar opciones de nuevo
+                setTimeout(() => {
+                    showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions);
+                }, 1200);
             };
 
             const cancelBtn = document.createElement("button");
@@ -742,18 +767,18 @@ function handleContactFlow(message) {
             chat.scrollTop = chat.scrollHeight;
             break;
     }
+
     input.value = "";
 }
 
 // 🔹 Cancelar flujo de contacto
 function cancelContactFlow() {
-    contactFlowActive = false;
-    contactData = { nombre: "", telefono: "", mensaje: "" };
-    contactStep = 0;
-    removeAllOptionButtons();
-
+    resetContactFlow();
     addMessage("bot", "❌ Se canceló el envío del mensaje.");
-    setTimeout(() => showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions), 1000);
+
+    setTimeout(() => {
+        showOptionButtons(...window.botConfig?.respuestas?.opciones || window.lastBotOptions);
+    }, 800);
 }
 
 // 🔹 Interceptar mensajes del usuario cuando está activo el flujo de contacto

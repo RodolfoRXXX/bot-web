@@ -83,7 +83,6 @@ router.post("/api/chat", async (req, res) => {
     }
 
     const result = responses[0].queryResult;
-    console.log(result)
 
     // 5. Fallback a config si no hay fulfillment
     let reply =

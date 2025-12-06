@@ -217,6 +217,10 @@ input {
     font-weight: 500;
     cursor: pointer;
     box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.08);
+
+    display: inline-flex;
+    align-items: center;   /* Centra imagen y texto verticalmente */
+    gap: 2px; 
 }
 
 /* Hover */

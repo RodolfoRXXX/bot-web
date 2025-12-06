@@ -151,6 +151,7 @@ function formatBotReply(reply) {
                     const str = item.stringValue;
                     const link = document.createElement("a");
                     const button = document.createElement("button");
+                    button.classList.add("option-button");
 
                     // 📧 Emails
                     if (str.includes?.("@")) {
@@ -166,6 +167,7 @@ function formatBotReply(reply) {
                     else if (str.startsWith("http") || str.includes("|")) {
                         let url = str;
                         let label;
+                        let hostname;
 
                         // 👉 Caso personalizado: "Título|acción o URL"
                         if (str.includes("|")) {
@@ -173,8 +175,16 @@ function formatBotReply(reply) {
                             label = parts[0].trim();
                             url = parts[1].trim();
                         } else {
-                            const hostname = new URL(str).hostname.replace("www.", "");
+                            // Extraer hostname real sin www
+                            hostname = new URL(url).hostname.replace("www.", "");
                             label = domainMap[hostname] || hostname;
+                        }
+
+                        // Buscar ícono según dominio
+                        if (hostname) {
+                            const iconUrl = Object.keys(domainIcons).find(key => hostname.endsWith(key))
+                            ? domainIcons[Object.keys(domainIcons).find(key => hostname.endsWith(key))]
+                            : null;   
                         }
 
                         // ⚙️ Acción especial: "contact"
@@ -191,7 +201,13 @@ function formatBotReply(reply) {
                         // En cualquier otro caso: link normal
                         link.href = url;
                         link.target = "_blank";
-                        button.textContent = `🔗 ${label}`;
+
+                        // Si existe icono → usar <img>, sino → usar 🔗
+                        if (iconUrl) {
+                            button.innerHTML = `<img src="${iconUrl}" style="width:20px; height:20px; margin-right:6px;"> ${label}`;
+                        } else {
+                            button.innerHTML = `🔗 ${label}`;
+                        }
                     }
 
                     // Texto plano

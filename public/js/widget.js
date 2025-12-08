@@ -168,6 +168,7 @@ function formatBotReply(reply) {
                         let url = str;
                         let label;
                         let hostname;
+                        let iconUrl;
 
                         // 👉 Caso personalizado: "Título|acción o URL"
                         if (str.includes("|")) {
@@ -182,7 +183,7 @@ function formatBotReply(reply) {
 
                         // Buscar ícono según dominio
                         if (hostname) {
-                            const iconUrl = Object.keys(domainIcons).find(key => hostname.endsWith(key))
+                            iconUrl = Object.keys(domainIcons).find(key => hostname.endsWith(key))
                             ? domainIcons[Object.keys(domainIcons).find(key => hostname.endsWith(key))]
                             : null;   
                         }

@@ -100,7 +100,7 @@ router.post("/api/chat", async (req, res) => {
 });
 
 // Ruta para enviar mensaje interno
-router.post("/api/send-message", async (req, res) => {
+router.post("/api/send-messages", async (req, res) => {
   const { name, phone, message, siteId, ownerEmail } = req.body;
 
   if (!ownerEmail) {
@@ -144,6 +144,54 @@ router.post("/api/send-message", async (req, res) => {
     res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
   }
 });
+
+// Ruta para enviar mensaje interno (Resend)
+router.post("/api/send-message", async (req, res) => {
+  const { name, phone, message, siteId, ownerEmail } = req.body;
+
+  if (!ownerEmail) {
+    return res.status(400).json({ ok: false, msg: "Falta el email del dueño del sitio" });
+  }
+
+  try {
+    // Inicializar Resend
+    const { Resend } = require('resend');
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    // 📧 Enviar mail con Resend API
+    const { data, error } = await resend.emails.send({
+      from: `Chatbot ${siteId} <${process.env.MAIL_FROM}>`,
+      to: ownerEmail,
+      subject: `💬 Nuevo mensaje desde el chatbot (${siteId})`,
+      html: `
+        <div style="font-family: sans-serif; background: #f9f9f9; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #333;">Nuevo mensaje recibido desde el chatbot</h2>
+          <p><strong>Nombre:</strong> ${name || "(no especificado)"}</p>
+          <p><strong>Teléfono:</strong> ${phone || "(no especificado)"}</p>
+          <p><strong>Mensaje:</strong></p>
+          <blockquote style="background:#fff; padding:10px 15px; border-left:4px solid #009688;">
+            ${message}
+          </blockquote>
+          <hr/>
+          <p style="font-size:12px;color:#666;">Chatbot: <strong>${siteId}</strong></p>
+        </div>
+      `
+    });
+
+    if (error) {
+      console.error("❌ Error al enviar con Resend:", error);
+      return res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
+    }
+
+    console.log("✅ Email enviado:", data.id);
+    res.json({ ok: true, msg: "Mensaje enviado correctamente" });
+
+  } catch (err) {
+    console.error("❌ Error inesperado:", err);
+    res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
+  }
+});
+
 
 // Webhook
 router.post("/webhook", express.json(), fulfillmentHandler);

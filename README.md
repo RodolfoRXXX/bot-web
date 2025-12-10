@@ -201,4 +201,17 @@ Luego de eso, todo nuevo cliente tiene costos marginales bajos y alto margen de 
 
 Cambios entre local y producción
 
-url render: https://my-bot-web.onrender.com
+    - Esta es la URL por defecto que asignó Render, en caso de que compre un dominio puedo asignarlo
+            url render: https://my-bot-web.onrender.com
+
+Para cambiar de desarrollo a productivo, considerar los siguientes cambios
+
+    - Cambiar la URL del webhook en la parte de fulfillment: https://my-bot-web.onrender.com/webhook
+
+    - En bot-widget.js cambiar el iframe.src: iframe.src = `https://my-bot-web.onrender.com/widget?siteId=${encodeURIComponent(siteId)}`;
+
+    - En el sitio web donde va incrustado el bot, agregar la url del bot:
+
+            <script src="https://my-bot-web.onrender.com/bot-widget.js"
+                data-siteid="bot123"> --> aquí va el id del bot del cliente
+            </script>

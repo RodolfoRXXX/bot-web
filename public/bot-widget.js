@@ -74,8 +74,8 @@
     iframe.style.position = "fixed";
     iframe.style.bottom = "90px";
     iframe.style.right = "20px";
-    iframe.style.width = "450px";
-    iframe.style.height = "650px";
+    iframe.style.width = "400px";
+    iframe.style.height = "600px";
     iframe.style.maxWidth = "100%";
     iframe.style.maxHeight = "100%";
     iframe.style.border = "none";

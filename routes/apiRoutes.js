@@ -99,7 +99,7 @@ router.post("/api/chat", async (req, res) => {
   }
 });
 
-// Ruta para enviar mensaje interno
+// Ruta para enviar mensaje interno(usando nodemailer para pruebas de desarrollo por fuera de Render) - Cambiar la ruta
 router.post("/api/send-messages", async (req, res) => {
   const { name, phone, message, siteId, ownerEmail } = req.body;
 
@@ -191,7 +191,6 @@ router.post("/api/send-message", async (req, res) => {
     res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
   }
 });
-
 
 // Webhook
 router.post("/webhook", express.json(), fulfillmentHandler);

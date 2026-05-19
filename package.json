@@ -7,9 +7,7 @@
         "dev": "nodemon server.js"
     },
     "dependencies": {
-        "@google-cloud/dialogflow": "^7.2.0",
-        "dialogflow": "^1.2.0",
-        "dialogflow-fulfillment": "^0.6.1",
+        "@google/generative-ai": "^0.24.1",
         "dotenv": "^17.2.1",
         "express": "^5.1.0",
         "firebase-admin": "^13.4.0",

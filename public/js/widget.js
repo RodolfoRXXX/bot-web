@@ -355,7 +355,7 @@ async function sendIntent(message) {
     const data = await res.json();
     let reply;
 
-    // Caso 1: respuesta estructurada de Dialogflow
+    // Caso 1: respuesta estructurada de Gemini
     if (data.reply.fields) {
         reply = data.reply.fields;
         // Simular demora
@@ -545,7 +545,7 @@ async function sendMessage() {
 
     resetInactivityTimer(); // 👈 reiniciar temporizador de inactividad
 
-    // 🟡 Si está activo el flujo de contacto, no enviamos a Dialogflow
+    // 🟡 Si está activo el flujo de contacto, no enviamos a Gemini
     if (contactFlowActive) {
         handleContactFlow(message);
         return; // 🚫 salimos antes de llamar al backend

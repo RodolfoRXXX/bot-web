@@ -1,11 +1,7 @@
-
 const express = require("express");
 const path = require("path");
-const { sessionClient } = require("../utils/dialogFlowClient");
-const { fulfillmentHandler } = require("../controllers/fulfillmentController");
-const db = require("../utils/firebase"); // <-- Asegurate de importar Firestore
-const { jsonToStructProto } = require("../utils/jsonToStruct");
-
+const db = require("../utils/firebase");
+const { sendMessageToGemini } = require("../utils/geminiClient");
 const nodemailer = require("nodemailer");
 
 const router = express.Router();
@@ -26,19 +22,18 @@ router.get("/api/config/:siteId", async (req, res) => {
       return res.status(404).json({ error: "Bot no encontrado." });
     }
 
-    res.json(doc.data()); // 🔹 Devuelve toda la config del bot
+    res.json(doc.data());
   } catch (error) {
     console.error("Error al obtener config del bot:", error);
     res.status(500).json({ error: "Error al obtener configuración del bot." });
   }
 });
 
-// Ruta API chat
+// Ruta API chat con Gemini
 router.post("/api/chat", async (req, res) => {
-  const { message, siteId = "defaultBot" } = req.body;
+  const { message, siteId = "defaultBot", sessionId } = req.body;
 
   try {
-    // 1. Traer config desde Firebase
     const doc = await db.collection("bots").doc(siteId).get();
 
     if (!doc.exists) {
@@ -48,54 +43,20 @@ router.post("/api/chat", async (req, res) => {
 
     const botConfig = doc.data();
 
-    // 🔹 1.1 Chequear si está activo
     if (botConfig?.config?.activo === 0 || botConfig?.config?.activo === false) {
       return res.json({
         reply: "⚠️ Este asistente está fuera de servicio temporalmente."
       });
     }
 
-    // 2. Idioma dinámico (con fallback a "es")
-    const languageCode = botConfig?.config?.idioma?.replace(/"/g, "") || "es";
+    const systemPrompt = botConfig?.systemPrompt || "Eres un asistente útil para este sitio web.";
+    const conversationId = sessionId || `${siteId}-${Date.now()}`;
+    const reply = await sendMessageToGemini(conversationId, message, systemPrompt);
 
-    // 3. Crear sesión
-    const sessionPathCustom = sessionClient.projectAgentSessionPath(
-      process.env.DIALOGFLOW_PROJECT_ID,
-      `${siteId}-${Date.now()}`
-    );
-
-    const request = {
-      session: sessionPathCustom,
-      queryInput: {
-        text: { text: message, languageCode }
-      },
-      queryParams: {
-        payload: jsonToStructProto({ siteId }) // 👈 siteId correcto
-      }
-    };
-
-    // 4. Llamar a Dialogflow
-    const responses = await sessionClient.detectIntent(request);
-
-    if (!responses?.[0]?.queryResult) {
-      console.error("Respuesta inesperada de Dialogflow:", responses);
-      return res.status(500).json({ reply: "Error: respuesta vacía de Dialogflow." });
-    }
-
-    const result = responses[0].queryResult;
-
-    // 5. Fallback a config si no hay fulfillment
-    let reply =
-      result.webhookPayload ||
-      result.fulfillmentText ||
-      result.fulfillmentMessages?.[0]?.text?.text?.[0]
-      "No entendí eso.";
-      
-    res.send({ reply });
-
+    res.send({ reply, sessionId: conversationId });
   } catch (error) {
-    console.error("Error con DialogFlow:", error.message);
-    res.status(500).json({ reply: "Error del bot al conectarse con DialogFlow." });
+    console.error("Error con Gemini:", error.message);
+    res.status(500).json({ reply: "Error del bot al conectarse con Gemini." });
   }
 });
 
@@ -108,19 +69,17 @@ router.post("/api/send-messages", async (req, res) => {
   }
 
   try {
-    // 📧 Configurar transporte
     const transporter = nodemailer.createTransport({
-      service: "gmail", // o smtp.custom.com
+      service: "gmail",
       auth: {
-        user: process.env.MAIL_USER, // tu cuenta remitente
-        pass: process.env.MAIL_PASS  // tu contraseña o app password
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS
       }
     });
 
-    // 📨 Enviar el mensaje
     await transporter.sendMail({
       from: `"Chatbot ${siteId}" <${process.env.MAIL_USER}>`,
-      to: ownerEmail, // el dueño del sitio
+      to: ownerEmail,
       subject: `💬 Nuevo mensaje desde el chatbot (${siteId})`,
       html: `
         <div style="font-family: sans-serif; background: #f9f9f9; padding: 20px; border-radius: 10px;">
@@ -154,11 +113,9 @@ router.post("/api/send-message", async (req, res) => {
   }
 
   try {
-    // Inicializar Resend
-    const { Resend } = require('resend');
+    const { Resend } = require("resend");
     const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // 📧 Enviar mail con Resend API
     const { data, error } = await resend.emails.send({
       from: `Chatbot ${siteId} <${process.env.MAIL_FROM}>`,
       to: ownerEmail,
@@ -185,14 +142,10 @@ router.post("/api/send-message", async (req, res) => {
 
     console.log("✅ Email enviado:", data.id);
     res.json({ ok: true, msg: "Mensaje enviado correctamente" });
-
   } catch (err) {
     console.error("❌ Error inesperado:", err);
     res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
   }
 });
-
-// Webhook
-router.post("/webhook", express.json(), fulfillmentHandler);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 
 const urlParams = new URLSearchParams(window.location.search);
-const siteId = urlParams.get("siteId") || "defaultBot";
+const siteId = urlParams.get("siteId") || "bot123";
 
 let inactivityTimer; // ⏱️ para controlar inactividad
 let botActivo = true; // valor por defecto

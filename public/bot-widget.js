@@ -1,7 +1,7 @@
 
 (function () {
     const currentScript = document.currentScript;
-    const siteId = currentScript.getAttribute("data-siteid") || "defaultBot";
+    const siteId = currentScript.getAttribute("data-siteid") || "bot123";
 
     // 🟦 Botón flotante
     const btn = document.createElement("div");

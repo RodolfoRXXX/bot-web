@@ -31,7 +31,7 @@ router.get("/api/config/:siteId", async (req, res) => {
 
 // Ruta API chat con Gemini
 router.post("/api/chat", async (req, res) => {
-  const { message, siteId = "defaultBot", sessionId } = req.body;
+  const { message, siteId = "bot123", sessionId } = req.body;
 
   try {
     const doc = await db.collection("bots").doc(siteId).get();

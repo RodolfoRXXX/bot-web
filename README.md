@@ -17,7 +17,7 @@ Este bot puede:
 ---
 
 ## ⚙️ ¿Cómo funciona?  
-Utiliza **Dialogflow** para detectar *intenciones* y responder de forma inteligente:  
+Utiliza **Gemini** como motor LLM para comprender mensajes y responder de forma inteligente:  
 - **Frontend** → JavaScript incrustable en cualquier página.  
 - **Backend** → Node.js.  
 - **Base de datos** → Firebase, para almacenar y recuperar la información de los clientes.  
@@ -206,7 +206,7 @@ Cambios entre local y producción
 
 Para cambiar de desarrollo a productivo, considerar los siguientes cambios
 
-    - Cambiar la URL del webhook en la parte de fulfillment: https://my-bot-web.onrender.com/webhook
+    - El endpoint principal de chat es: https://my-bot-web.onrender.com/api/chat
 
     - En bot-widget.js cambiar el iframe.src: iframe.src = `https://my-bot-web.onrender.com/widget?siteId=${encodeURIComponent(siteId)}`;
 

@@ -215,3 +215,6 @@ Para cambiar de desarrollo a productivo, considerar los siguientes cambios
             <script src="https://my-bot-web.onrender.com/bot-widget.js"
                 data-siteid="bot123"> --> aquí va el id del bot del cliente
             </script>
+
+## 📘 Plan técnico de implementación
+- Ver `docs/technical-implementation-plan.md` para roadmap detallado por fases, tareas y criterios de aceptación.

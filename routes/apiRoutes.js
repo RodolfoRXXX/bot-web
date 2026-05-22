@@ -1,8 +1,8 @@
 const express = require("express");
 const path = require("path");
-const db = require("../utils/firebase");
-const { sendMessageToGemini } = require("../utils/geminiClient");
 const nodemailer = require("nodemailer");
+const chatController = require("../controllers/chatController");
+const configController = require("../controllers/configController");
 
 const router = express.Router();
 
@@ -12,53 +12,10 @@ router.get("/widget", (req, res) => {
 });
 
 // Ruta para obtener configuración del bot según siteId
-router.get("/api/config/:siteId", async (req, res) => {
-  const siteId = req.params.siteId;
-
-  try {
-    const doc = await db.collection("bots").doc(siteId).get();
-
-    if (!doc.exists) {
-      return res.status(404).json({ error: "Bot no encontrado." });
-    }
-
-    res.json(doc.data());
-  } catch (error) {
-    console.error("Error al obtener config del bot:", error);
-    res.status(500).json({ error: "Error al obtener configuración del bot." });
-  }
-});
+router.get("/api/config/:siteId", configController.getBotConfig);
 
 // Ruta API chat con Gemini
-router.post("/api/chat", async (req, res) => {
-  const { message, siteId = "bot123", sessionId } = req.body;
-
-  try {
-    const doc = await db.collection("bots").doc(siteId).get();
-
-    if (!doc.exists) {
-      console.log("El documento no existe en Firestore:", siteId);
-      return res.status(404).json({ reply: "Estamos experimentando algunos problemas. Intente más tarde." });
-    }
-
-    const botConfig = doc.data();
-
-    if (botConfig?.config?.activo === 0 || botConfig?.config?.activo === false) {
-      return res.json({
-        reply: "⚠️ Este asistente está fuera de servicio temporalmente."
-      });
-    }
-
-    const systemPrompt = botConfig?.systemPrompt || "Eres un asistente útil para este sitio web.";
-    const conversationId = sessionId || `${siteId}-${Date.now()}`;
-    const reply = await sendMessageToGemini(conversationId, message, systemPrompt);
-
-    res.send({ reply, sessionId: conversationId });
-  } catch (error) {
-    console.error("Error con Gemini:", error.message);
-    res.status(500).json({ reply: "Error del bot al conectarse con Gemini." });
-  }
-});
+router.post("/api/chat", chatController.chat);
 
 // Ruta para enviar mensaje interno(usando nodemailer para pruebas de desarrollo por fuera de Render) - Cambiar la ruta
 router.post("/api/send-messages", async (req, res) => {
@@ -97,10 +54,10 @@ router.post("/api/send-messages", async (req, res) => {
     });
 
     console.log(`✅ Mensaje enviado al dueño del sitio (${ownerEmail})`);
-    res.json({ ok: true, msg: "Mensaje enviado correctamente" });
+    return res.json({ ok: true, msg: "Mensaje enviado correctamente" });
   } catch (err) {
     console.error("❌ Error al enviar el mensaje:", err);
-    res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
+    return res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
   }
 });
 
@@ -141,10 +98,10 @@ router.post("/api/send-message", async (req, res) => {
     }
 
     console.log("✅ Email enviado:", data.id);
-    res.json({ ok: true, msg: "Mensaje enviado correctamente" });
+    return res.json({ ok: true, msg: "Mensaje enviado correctamente" });
   } catch (err) {
     console.error("❌ Error inesperado:", err);
-    res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
+    return res.status(500).json({ ok: false, msg: "Error al enviar el mensaje" });
   }
 });
 

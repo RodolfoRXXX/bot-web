@@ -344,3 +344,39 @@ No reemplazar todo de una vez. Mantener operación actual y migrar endpoint por 
 1. Refactor de estructura interna.
 2. Activar feature gates sin apagar funcionalidad base.
 3. Encender features por cliente progresivamente.
+
+---
+
+## 9) Seguimiento de implementación (actualizado)
+
+### Estado general
+- **Fase 0:** ✅ Implementada.
+- **Fase 1:** ✅ Implementada (MVP con validación por `action`, `featureKey` y `permissionKey`).
+
+### Fase 0 — Cambios realizados
+1. Se creó `controllers/chatController.js` y se movió la lógica de `POST /api/chat` fuera de rutas.
+2. Se creó `controllers/configController.js` y se movió la lógica de `GET /api/config/:siteId` fuera de rutas.
+3. Se creó `services/botConfigService.js` con `getBotConfig(siteId)`.
+4. Se creó `repositories/botRepository.js` para encapsular acceso a Firestore (`bots/{siteId}`).
+5. Se mantuvieron los contratos HTTP existentes para casos actuales:
+   - bot no encontrado en chat -> `404` con `reply`.
+   - bot inactivo -> respuesta con texto de fuera de servicio.
+   - éxito -> `{ reply, sessionId }`.
+
+### Fase 1 — Cambios realizados
+1. Se creó `policies/planPolicies.js` con políticas base para `starter`, `pro`, `premium`.
+2. Se creó `services/featureGateService.js` con:
+   - `isBotActive(botConfig)`
+   - `isFeatureEnabled(botConfig, featureKey)`
+   - `can(botConfig, permissionKey)`
+3. Se integró validación de permisos en `chatController` antes de invocar el modelo.
+4. Se definió respuesta estándar para funcionalidad no habilitada:
+   - `status: 403`
+   - `error: "FEATURE_NOT_ENABLED"`
+   - `reply: "Esta funcionalidad no está habilitada para este bot."`
+
+### Notas de alcance de este avance
+- El gate en Fase 1 funciona de forma explícita cuando el request envía:
+  - `action` (ej: `createAppointment`, `captureLead`, `listOffers`), o
+  - `featureKey` / `permissionKey`.
+- Si el request no indica acción/feature/permiso, el flujo informativo actual continúa sin bloqueo adicional.
